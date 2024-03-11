@@ -9,13 +9,13 @@ class RenderingProgram {
 public:
     explicit RenderingProgram() = default;
 
-    RenderingProgram& Create() {
+    RenderingProgram &Create() {
         program_ = glCreateProgram();
         return *this;
     }
 
     RenderingProgram &VertexShader(const std::string &file_path) {
-        auto content = ReadShaderFile(file_path.c_str());
+        auto content = Files::ReadShaderFile(file_path.c_str());
         const char *c_str = content.c_str();
         vertex_shader_ = glCreateShader(GL_VERTEX_SHADER);
         glShaderSource(vertex_shader_, 1, &c_str, nullptr);
@@ -25,7 +25,7 @@ public:
     }
 
     RenderingProgram &FragmentShader(const std::string &file_path) {
-        auto content = ReadShaderFile(file_path.c_str());
+        auto content = Files::ReadShaderFile(file_path.c_str());
         const char *c_str = content.c_str();
         fragment_shader_ = glCreateShader(GL_FRAGMENT_SHADER);
         glShaderSource(fragment_shader_, 1, &c_str, nullptr);

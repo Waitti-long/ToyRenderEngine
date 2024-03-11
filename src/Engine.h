@@ -86,7 +86,7 @@ public:
 
 private:
     GLFWwindow *window_ = nullptr;
-    RenderingProgram rendering_program_;
+    RenderingProgram rendering_program_{};
     GLuint vao[numVAOs]{};
     double last_time_{};
 
