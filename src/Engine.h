@@ -25,10 +25,12 @@ public:
     void SetUpMat() {
         cameraX = 0.0f;
         cameraY = 0.0f;
-        cameraZ = 8.0f;
+        cameraZ = 10.0f;
         cubeLocX = 0.0f;
-        cubeLocY = -2.0f;
+        cubeLocY = 0.01f;
         cubeLocZ = 0.0f;
+
+        thea = 0.0f;
     }
 
     void SetUpVertices() {
@@ -70,9 +72,10 @@ public:
     void Draw(double dt) {
         glUseProgram(rendering_program_.program());
 
-        UpdateMat();
+        UpdateMat(dt);
         UpdateUniformMat4fv("mv_matrix", mvMat);
         UpdateUniformMat4fv("proj_matrix", pMat);
+        UpdateUniformMat4fv("r_mat", rMat);
 
         glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
@@ -83,7 +86,7 @@ public:
         glDrawArrays(GL_TRIANGLES, 0, 36);
     }
 
-    void UpdateMat() {
+    void UpdateMat(double dt) {
         glfwGetFramebufferSize(window_, &width, &height);
         aspect = (float) width / (float) height;
         pMat = glm::perspective(1.0472f, aspect, 0.1f, 1000.0f);
@@ -91,6 +94,9 @@ public:
         vMat = glm::translate(glm::mat4(1.0f), glm::vec3(-cameraX, -cameraY, -cameraZ));
         mMat = glm::translate(glm::mat4(1.0f), glm::vec3(cubeLocX, cubeLocY, cubeLocZ));
         mvMat = vMat * mMat;
+
+        thea += dt;
+        rMat = glm::rotate(glm::mat4(1.0f), thea, glm::normalize(glm::vec3(1, 1, 0)));
     }
 
 
@@ -158,4 +164,6 @@ private:
     int width, height;
     float aspect;
     glm::mat4 pMat, vMat, mMat, mvMat;
+    glm::mat4 rMat;
+    float thea;
 };
