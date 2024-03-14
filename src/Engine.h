@@ -29,8 +29,8 @@ class Engine {
     cameraX = 0.0f;
     cameraY = 0.0f;
     cameraZ = 10.0f;
-    cubeLocX = 0.0f;
-    cubeLocY = 0.01f;
+    cubeLocX = -2.0f;
+    cubeLocY = -2.0f;
     cubeLocZ = 0.0f;
 
     thea = 0.0f;
@@ -73,7 +73,7 @@ class Engine {
 
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
-    glDrawArrays(GL_TRIANGLES, 0, 36);
+    glDrawArraysInstanced(GL_TRIANGLES, 0, 36, 24);
   }
 
   void UpdateMat(double dt) {
