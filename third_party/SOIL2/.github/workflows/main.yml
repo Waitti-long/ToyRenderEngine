@@ -1,0 +1,63 @@
+name: build
+
+on: [push, pull_request]
+
+jobs:
+  Linux:
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install dependencies
+      run: |
+        sudo add-apt-repository universe
+        sudo add-apt-repository multiverse
+        sudo apt update
+        sudo apt install gcc-12 g++-12 wget libsdl2-2.0-0 libsdl2-dev
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 10
+        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-12 10
+        sudo update-alternatives --install /usr/bin/cc cc /usr/bin/gcc 30
+        sudo update-alternatives --set cc /usr/bin/gcc
+        sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++ 30
+        sudo update-alternatives --set c++ /usr/bin/g++
+        sudo update-alternatives --config gcc
+        sudo update-alternatives --config g++
+        wget https://github.com/premake/premake-core/releases/download/v5.0.0-alpha15/premake-5.0.0-alpha15-linux.tar.gz
+        tar xvzf premake-5.0.0-alpha15-linux.tar.gz
+    - name: Build
+      run: |
+        ./premake5 gmake2
+        cd make/linux
+        make all
+  MacOS:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install dependencies
+      run: |
+        brew install wget
+        brew install SDL2
+        wget https://github.com/premake/premake-core/releases/download/v5.0.0-alpha15/premake-5.0.0-alpha15-macosx.tar.gz
+        tar -xzf premake-5.0.0-alpha15-macosx.tar.gz
+    - name: Build
+      run: |
+        ./premake5 gmake2
+        make -C make/macosx/ -j`nproc` all
+  Windows:
+    runs-on: windows-latest
+    env:
+      MSBUILD_PATH: C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin\
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install dependencies
+      shell: powershell
+      run: |
+        Invoke-WebRequest -Uri "https://github.com/premake/premake-core/releases/download/v5.0.0-beta1/premake-5.0.0-beta1-windows.zip" -OutFile "premake-5.0.0-beta1-windows.zip"
+        Expand-Archive -DestinationPath . -Path premake-5.0.0-beta1-windows.zip
+    - name: Create project
+      shell: powershell
+      run: |
+        ./premake5.exe --windows-vc-build vs2022
+    - name: Build
+      shell: cmd
+      run: |
+        "%MSBUILD_PATH%\MSBuild.exe" .\make\windows\SOIL2.sln -m

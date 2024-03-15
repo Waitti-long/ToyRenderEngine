@@ -3,9 +3,12 @@ project(gllearn)
 
 set(CMAKE_CXX_STANDARD 17)
 
+add_subdirectory(third_party/SOIL2)
+
 set(CMAKE_EXE_LINKER_FLAGS "-static")
 
 include_directories(${CMAKE_SOURCE_DIR}/third_party/include)
+include_directories(${CMAKE_SOURCE_DIR})
 aux_source_directory(src SRC_LIST)
 add_executable(${PROJECT_NAME} ${SRC_LIST})
 
