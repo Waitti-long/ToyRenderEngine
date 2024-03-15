@@ -31,8 +31,8 @@ class Engine {
     cameraX = 0.0f;
     cameraY = 0.0f;
     cameraZ = 10.0f;
-    cubeLocX = -2.0f;
-    cubeLocY = -2.0f;
+    cubeLocX = 0.0f;
+    cubeLocY = 0.0f;
     cubeLocZ = 0.0f;
 
     thea = 0.0f;
