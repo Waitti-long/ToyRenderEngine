@@ -25,7 +25,7 @@ class Engine {
         .Link();
 
     model = ImportedModel("../assets/shuttle.obj");
-    brick_texture = LoadTexture("../assets/brick.jpg");
+    texture = LoadTexture("../assets/spstob_1.jpg");
 
     SetUpMat();
     SetUpVertices();
@@ -101,7 +101,7 @@ class Engine {
     glEnableVertexAttribArray(2);
 
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, brick_texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
     // mipmap
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
                     GL_LINEAR_MIPMAP_LINEAR);
@@ -209,7 +209,7 @@ class Engine {
   float offsetX, offsetY, offsetZ;
   ImportedModel model;
 
-  GLuint brick_texture;
+  GLuint texture;
 
   int width, height;
   float aspect;
