@@ -9,6 +9,8 @@
 #include "Sphere.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/type_ptr.hpp"
+#include "material.h"
+#include "logger.h"
 #include "third_party/SOIL2/src/SOIL2/SOIL2.h"
 
 #define numVAOs 1
@@ -87,6 +89,7 @@ class Engine {
     UpdateMat(dt);
     UpdateUniformMat4fv("mv_matrix", mvMat);
     UpdateUniformMat4fv("proj_matrix", pMat);
+    UpdateUniformMat4fv("norm_matrix", invTrMat);
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
@@ -114,6 +117,8 @@ class Engine {
                       anisoSettings);
     }
 
+    glEnable(GL_CULL_FACE);
+    glFrontFace(GL_CCW);
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
     glDrawArrays(GL_TRIANGLES, 0, model.getNumVertices());
@@ -133,6 +138,29 @@ class Engine {
         glm::translate(glm::mat4(1.0f), glm::vec3(offsetX, offsetY, offsetZ));
     mMat *= rMat;
     mvMat = vMat * mMat;
+
+    currentLightPos =
+        glm::vec3(initialLightLoc.x, initialLightLoc.y, initialLightLoc.z);
+    installLights(vMat);
+
+    invTrMat = glm::transpose(glm::inverse(mvMat));
+  }
+
+  void installLights(glm::mat4 vMatrix) {
+    lightPosV = glm::vec3(vMatrix * glm::vec4(currentLightPos, 1.0f));
+    lightPos[0] = lightPosV.x;
+    lightPos[1] = lightPosV.y;
+    lightPos[2] = lightPosV.z;
+
+    UpdateUniform4fv("globalAmbient", globalAmbient);
+    UpdateUniform4fv("light.ambient", lightAmbient);
+    UpdateUniform4fv("light.diffuse", lightDiffuse);
+    UpdateUniform4fv("light.specular", lightSpecular);
+    UpdateUniform3fv("light.position", lightPos);
+    UpdateUniform4fv("material.ambient", matAmb);
+    UpdateUniform4fv("material.diffuse", matDif);
+    UpdateUniform4fv("material.specular", matSpe);
+    UpdateUniform1f("material.shininess", matShi);
   }
 
   void UpdateUniform1f(const std::string &name, double value) {
@@ -144,7 +172,20 @@ class Engine {
   void UpdateUniformMat4fv(const std::string &name, const glm::mat4 &value) {
     GLuint loc =
         glGetUniformLocation(rendering_program_.program(), name.c_str());
-    glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(value));
+    glProgramUniformMatrix4fv(rendering_program_.program(), loc, 1, GL_FALSE,
+                              glm::value_ptr(value));
+  }
+
+  void UpdateUniform4fv(const std::string &name, float value[4]) {
+    GLuint loc =
+        glGetUniformLocation(rendering_program_.program(), name.c_str());
+    glProgramUniform4fv(rendering_program_.program(), loc, 1, value);
+  }
+
+  void UpdateUniform3fv(const std::string &name, float value[3]) {
+    GLuint loc =
+        glGetUniformLocation(rendering_program_.program(), name.c_str());
+    glProgramUniform3fv(rendering_program_.program(), loc, 1, value);
   }
 
   static GLuint LoadTexture(const char *path) {
@@ -188,6 +229,7 @@ class Engine {
       last_time_ = time;
       Clear();
       Draw(dt);
+      Logger::PrintProgramLog(rendering_program_.program());
       glfwSwapBuffers(window_);
       glfwPollEvents();
     }
@@ -213,6 +255,24 @@ class Engine {
 
   int width, height;
   float aspect;
-  glm::mat4 pMat, vMat, mMat, mvMat;
+  glm::mat4 pMat, vMat, mMat, mvMat, invTrMat;
   float thea;
+
+  glm::vec3 currentLightPos, lightPosV;  // 在模型和视觉空间中的光照位置
+  float lightPos[3];                     // 光照位置的浮点数组
+
+  // 初始化光照位置
+  glm::vec3 initialLightLoc = glm::vec3(5.0f, 2.0f, 2.0f);
+
+  // 白光
+  float globalAmbient[4] = {0.7f, 0.7f, 0.7f, 1.0f};
+  float lightAmbient[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+  float lightDiffuse[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+  float lightSpecular[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+
+  // 黄金
+  float *matAmb = Material::goldAmbient();
+  float *matDif = Material::goldDiffuse();
+  float *matSpe = Material::goldSpecular();
+  float matShi = Material::goldShininess();
 };
