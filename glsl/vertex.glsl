@@ -26,6 +26,10 @@ uniform Material material;
 
 out vec2 tc;
 out vec4 varyingColor;
+out vec3 varyingNormal; // 视觉空间顶点法向量
+out vec3 varingLightDir; // 指向光源的向量
+out vec3 varyingVertPos; // 视觉空间中的顶点位置
+out vec3 varyingHalfVector; // 角平分线
 uniform mat4 mv_matrix;
 uniform mat4 proj_matrix;
 uniform mat4 norm_matrix;
@@ -46,6 +50,11 @@ void main(void) {
     vec3 specular = material.specular.xyz * light.specular.xyz * pow(max(dot(R, V), 0.0f), material.shininess);
 
     varyingColor = vec4((ambient + diffuse + specular), 1.0);
+
+    varyingVertPos = P.xyz;
+    varingLightDir = L;
+    varyingNormal = N;
+    varyingHalfVector = (varingLightDir - varyingVertPos).xyz;
 
     gl_Position = proj_matrix * mv_matrix * vec4(position, 1.0);
 }
