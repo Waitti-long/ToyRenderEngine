@@ -4,6 +4,7 @@
 
 #include "GL/glew.h"
 #include "GLFW/glfw3.h"
+#include "ImportedModel.h"
 #include "RenderingProgram.h"
 #include "Sphere.h"
 #include "glm/glm.hpp"
@@ -11,7 +12,7 @@
 #include "third_party/SOIL2/src/SOIL2/SOIL2.h"
 
 #define numVAOs 1
-#define numVBOs 5
+#define numVBOs 3
 
 class Engine {
  public:
@@ -23,90 +24,61 @@ class Engine {
         .FragmentShader("../glsl/fragment.glsl")
         .Link();
 
+    model = ImportedModel("../assets/shuttle.obj");
+    brick_texture = LoadTexture("../assets/brick.jpg");
+
     SetUpMat();
     SetUpVertices();
-    brick_texture = LoadTexture("../assets/brick.jpg");
   }
 
   void SetUpMat() {
     cameraX = 0.0f;
     cameraY = 0.0f;
-    cameraZ = 10.0f;
-    cubeLocX = 0.0f;
-    cubeLocY = 0.0f;
-    cubeLocZ = 0.0f;
-    sphereX = 2.0f;
-    sphereY = 2.0f;
-    sphereZ = 0.0f;
+    cameraZ = 2.0f;
+
+    offsetX = 0.0f;
+    offsetY = 0.0f;
+    offsetZ = 0.0f;
 
     thea = 0.0f;
   }
 
   void SetUpVertices() {
-    float vertex_positions[108] = {
-        -1.0f, 1.0f,  -1.0f, -1.0f, -1.0f, -1.0f, 1.0f,  -1.0f, -1.0f, 1.0f,
-        -1.0f, -1.0f, 1.0f,  1.0f,  -1.0f, -1.0f, 1.0f,  -1.0f, 1.0f,  -1.0f,
-        -1.0f, 1.0f,  -1.0f, 1.0f,  1.0f,  1.0f,  -1.0f, 1.0f,  -1.0f, 1.0f,
-        1.0f,  1.0f,  1.0f,  1.0f,  1.0f,  -1.0f, 1.0f,  -1.0f, 1.0f,  -1.0f,
-        -1.0f, 1.0f,  1.0f,  1.0f,  1.0f,  -1.0f, -1.0f, 1.0f,  -1.0f, 1.0f,
-        1.0f,  1.0f,  1.0f,  1.0f,  -1.0f, -1.0f, 1.0f,  -1.0f, -1.0f, -1.0f,
-        -1.0f, 1.0f,  1.0f,  -1.0f, -1.0f, -1.0f, -1.0f, 1.0f,  -1.0f, -1.0f,
-        1.0f,  1.0f,  -1.0f, -1.0f, 1.0f,  1.0f,  -1.0f, 1.0f,  1.0f,  -1.0f,
-        -1.0f, 1.0f,  -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f,
-        -1.0f, 1.0f,  -1.0f, 1.0f,  1.0f,  -1.0f, 1.0f,  1.0f,  1.0f,  1.0f,
-        1.0f,  1.0f,  -1.0f, 1.0f,  1.0f,  -1.0f, 1.0f,  -1.0f};
+    auto vert = model.getVertices();
+    auto tex = model.getTextureCoords();
+    auto norm = model.getNormals();
+    int numObjVertices = model.getNumVertices();
 
-    glGenVertexArrays(numVAOs, vao);
+    std::vector<float> pvalues;
+    std::vector<float> tvalues;
+    std::vector<float> nvalues;
+
+    for (int i = 0; i < numObjVertices; i++) {
+      pvalues.push_back(vert[i].x);
+      pvalues.push_back(vert[i].y);
+      pvalues.push_back(vert[i].z);
+      tvalues.push_back(tex[i].s);
+      tvalues.push_back(tex[i].t);
+      nvalues.push_back(norm[i].x);
+      nvalues.push_back(norm[i].y);
+      nvalues.push_back(norm[i].z);
+    }
+
+    glGenVertexArrays(1, vao);
     glBindVertexArray(vao[0]);
     glGenBuffers(numVBOs, vbo);
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_positions), vertex_positions,
+    glBufferData(GL_ARRAY_BUFFER, pvalues.size() * 4, &pvalues[0],
                  GL_STATIC_DRAW);
 
-    // texture
-    float tex[72];
-    for (int i = 0; i < 72; i += 6) {
-      tex[i] = 0.0f;
-      tex[i + 1] = 0.0f;
-      tex[i + 2] = 0.0f;
-      tex[i + 3] = 1.0f;
-      tex[i + 4] = 1.0f;
-      tex[i + 5] = 1.0f;
-    }
     glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(tex), tex, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, tvalues.size() * 4, &tvalues[0],
+                 GL_STATIC_DRAW);
 
-    {
-      // sphere
-      std::vector<int> ind = sphere_.getIndices();
-      std::vector<glm::vec3> vert = sphere_.getVertices();
-      std::vector<glm::vec2> tex = sphere_.getTexCoords();
-      std::vector<glm::vec3> norm = sphere_.getNormals();
-      std::vector<float> pvalues;
-      std::vector<float> tvalues;
-      std::vector<float> nvalues;
-      int numIndices = sphere_.getNumIndices();
-      for (int i = 0; i < numIndices; i++) {
-        pvalues.push_back(vert[ind[i]].x);
-        pvalues.push_back(vert[ind[i]].y);
-        pvalues.push_back(vert[ind[i]].z);
-        tvalues.push_back(tex[ind[i]].s);
-        tvalues.push_back(tex[ind[i]].t);
-        nvalues.push_back(norm[ind[i]].x);
-        nvalues.push_back(norm[ind[i]].y);
-        nvalues.push_back(norm[ind[i]].z);
-      }
-      glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
-      glBufferData(GL_ARRAY_BUFFER, pvalues.size() * 4, &pvalues[0],
-                   GL_STATIC_DRAW);
-      glBindBuffer(GL_ARRAY_BUFFER, vbo[3]);
-      glBufferData(GL_ARRAY_BUFFER, tvalues.size() * 4, &tvalues[0],
-                   GL_STATIC_DRAW);
-      glBindBuffer(GL_ARRAY_BUFFER, vbo[4]);
-      glBufferData(GL_ARRAY_BUFFER, nvalues.size() * 4, &tvalues[0],
-                   GL_STATIC_DRAW);
-    }
+    glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
+    glBufferData(GL_ARRAY_BUFFER, nvalues.size() * 4, &nvalues[0],
+                 GL_STATIC_DRAW);
   }
 
   void Draw(double dt) {
@@ -114,9 +86,7 @@ class Engine {
 
     UpdateMat(dt);
     UpdateUniformMat4fv("mv_matrix", mvMat);
-    UpdateUniformMat4fv("mv_mat2", mvMat2);
     UpdateUniformMat4fv("proj_matrix", pMat);
-    UpdateUniformMat4fv("r_mat", rMat);
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
@@ -129,14 +99,6 @@ class Engine {
     glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(2);
-
-    glBindBuffer(GL_ARRAY_BUFFER, vbo[3]);
-    glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, 0, 0);
-    glEnableVertexAttribArray(3);
-
-    glBindBuffer(GL_ARRAY_BUFFER, vbo[4]);
-    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, 0);
-    glEnableVertexAttribArray(4);
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, brick_texture);
@@ -154,7 +116,7 @@ class Engine {
 
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
-    glDrawArrays(GL_TRIANGLES, 0, 36 + sphere_.getNumIndices());
+    glDrawArrays(GL_TRIANGLES, 0, model.getNumVertices());
   }
 
   void UpdateMat(double dt) {
@@ -164,15 +126,13 @@ class Engine {
 
     vMat = glm::translate(glm::mat4(1.0f),
                           glm::vec3(-cameraX, -cameraY, -cameraZ));
-    mMat = glm::translate(glm::mat4(1.0f),
-                          glm::vec3(cubeLocX, cubeLocY, cubeLocZ));
-    mvMat = vMat * mMat;
-    mvMat2 = vMat * glm::translate(
-                        glm::mat4(1.0f), glm::vec3(sphereX, sphereY, sphereZ));
-
     thea += dt;
-    rMat =
+    auto rMat =
         glm::rotate(glm::mat4(1.0f), thea, glm::normalize(glm::vec3(1, 1, 0)));
+    mMat =
+        glm::translate(glm::mat4(1.0f), glm::vec3(offsetX, offsetY, offsetZ));
+    mMat *= rMat;
+    mvMat = vMat * mMat;
   }
 
   void UpdateUniform1f(const std::string &name, double value) {
@@ -246,16 +206,13 @@ class Engine {
   GLuint vao[numVAOs]{};
   GLuint vbo[numVBOs]{};
   float cameraX, cameraY, cameraZ;
-  float cubeLocX, cubeLocY, cubeLocZ;
-  float sphereX, sphereY, sphereZ;
-  GLuint mvLoc, projLoc;
-  int width, height;
-  float aspect;
-  glm::mat4 pMat, vMat, mMat, mvMat, mvMat2;
-  glm::mat4 rMat;
-  float thea;
+  float offsetX, offsetY, offsetZ;
+  ImportedModel model;
 
   GLuint brick_texture;
 
-  Sphere sphere_{48};
+  int width, height;
+  float aspect;
+  glm::mat4 pMat, vMat, mMat, mvMat;
+  float thea;
 };
