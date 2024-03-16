@@ -42,7 +42,7 @@ void main(void) {
     vec3 R = reflect(-L, N);
 
     vec3 ambient = ((globalAmbient * material.ambient) + (light.ambient * material.ambient)).xyz;
-    vec3 diffuse = light.diffuse.xyz * material.diffuse.xyz + max(dot(N, L), 0.0);
+    vec3 diffuse = light.diffuse.xyz * material.diffuse.xyz * max(dot(N, L), 0.0);
     vec3 specular = material.specular.xyz * light.specular.xyz * pow(max(dot(R, V), 0.0f), material.shininess);
 
     varyingColor = vec4((ambient + diffuse + specular), 1.0);

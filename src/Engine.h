@@ -9,8 +9,8 @@
 #include "Sphere.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/type_ptr.hpp"
-#include "material.h"
 #include "logger.h"
+#include "material.h"
 #include "third_party/SOIL2/src/SOIL2/SOIL2.h"
 
 #define numVAOs 1
