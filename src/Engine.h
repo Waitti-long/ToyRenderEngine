@@ -5,12 +5,13 @@
 #include "GL/glew.h"
 #include "GLFW/glfw3.h"
 #include "RenderingProgram.h"
-#include "third_party/SOIL2/src/SOIL2/SOIL2.h"
+#include "Sphere.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/type_ptr.hpp"
+#include "third_party/SOIL2/src/SOIL2/SOIL2.h"
 
 #define numVAOs 1
-#define numVBOs 2
+#define numVBOs 5
 
 class Engine {
  public:
@@ -34,6 +35,9 @@ class Engine {
     cubeLocX = 0.0f;
     cubeLocY = 0.0f;
     cubeLocZ = 0.0f;
+    sphereX = 2.0f;
+    sphereY = 2.0f;
+    sphereZ = 0.0f;
 
     thea = 0.0f;
   }
@@ -72,6 +76,37 @@ class Engine {
     }
     glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(tex), tex, GL_STATIC_DRAW);
+
+    {
+      // sphere
+      std::vector<int> ind = sphere_.getIndices();
+      std::vector<glm::vec3> vert = sphere_.getVertices();
+      std::vector<glm::vec2> tex = sphere_.getTexCoords();
+      std::vector<glm::vec3> norm = sphere_.getNormals();
+      std::vector<float> pvalues;
+      std::vector<float> tvalues;
+      std::vector<float> nvalues;
+      int numIndices = sphere_.getNumIndices();
+      for (int i = 0; i < numIndices; i++) {
+        pvalues.push_back(vert[ind[i]].x);
+        pvalues.push_back(vert[ind[i]].y);
+        pvalues.push_back(vert[ind[i]].z);
+        tvalues.push_back(tex[ind[i]].s);
+        tvalues.push_back(tex[ind[i]].t);
+        nvalues.push_back(norm[ind[i]].x);
+        nvalues.push_back(norm[ind[i]].y);
+        nvalues.push_back(norm[ind[i]].z);
+      }
+      glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
+      glBufferData(GL_ARRAY_BUFFER, pvalues.size() * 4, &pvalues[0],
+                   GL_STATIC_DRAW);
+      glBindBuffer(GL_ARRAY_BUFFER, vbo[3]);
+      glBufferData(GL_ARRAY_BUFFER, tvalues.size() * 4, &tvalues[0],
+                   GL_STATIC_DRAW);
+      glBindBuffer(GL_ARRAY_BUFFER, vbo[4]);
+      glBufferData(GL_ARRAY_BUFFER, nvalues.size() * 4, &tvalues[0],
+                   GL_STATIC_DRAW);
+    }
   }
 
   void Draw(double dt) {
@@ -79,6 +114,7 @@ class Engine {
 
     UpdateMat(dt);
     UpdateUniformMat4fv("mv_matrix", mvMat);
+    UpdateUniformMat4fv("mv_mat2", mvMat2);
     UpdateUniformMat4fv("proj_matrix", pMat);
     UpdateUniformMat4fv("r_mat", rMat);
 
@@ -90,12 +126,35 @@ class Engine {
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(1);
 
+    glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(2);
+
+    glBindBuffer(GL_ARRAY_BUFFER, vbo[3]);
+    glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(3);
+
+    glBindBuffer(GL_ARRAY_BUFFER, vbo[4]);
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(4);
+
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, brick_texture);
+    // mipmap
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                    GL_LINEAR_MIPMAP_LINEAR);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    // 各向异性过滤
+    if (glewIsSupported("GL_EXT_texture_filter_anisotropic")) {
+      GLfloat anisoSettings = 0.0f;
+      glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &anisoSettings);
+      glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT,
+                      anisoSettings);
+    }
 
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
-    glDrawArrays(GL_TRIANGLES, 0, 36);
+    glDrawArrays(GL_TRIANGLES, 0, 36 + sphere_.getNumIndices());
   }
 
   void UpdateMat(double dt) {
@@ -108,6 +167,8 @@ class Engine {
     mMat = glm::translate(glm::mat4(1.0f),
                           glm::vec3(cubeLocX, cubeLocY, cubeLocZ));
     mvMat = vMat * mMat;
+    mvMat2 = vMat * glm::translate(
+                        glm::mat4(1.0f), glm::vec3(sphereX, sphereY, sphereZ));
 
     thea += dt;
     rMat =
@@ -186,12 +247,15 @@ class Engine {
   GLuint vbo[numVBOs]{};
   float cameraX, cameraY, cameraZ;
   float cubeLocX, cubeLocY, cubeLocZ;
+  float sphereX, sphereY, sphereZ;
   GLuint mvLoc, projLoc;
   int width, height;
   float aspect;
-  glm::mat4 pMat, vMat, mMat, mvMat;
+  glm::mat4 pMat, vMat, mMat, mvMat, mvMat2;
   glm::mat4 rMat;
   float thea;
 
   GLuint brick_texture;
+
+  Sphere sphere_{48};
 };
