@@ -28,6 +28,7 @@ class Engine {
 
     model = ImportedModel("../assets/shuttle.obj");
     texture = LoadTexture("../assets/spstob_1.jpg");
+    sky_texture = LoadTexture("../assets/alien.jpg");
 
     SetUpMat();
     SetUpVertices();
@@ -83,10 +84,58 @@ class Engine {
                  GL_STATIC_DRAW);
   }
 
-  void Draw(double dt) {
-    glUseProgram(rendering_program_.program());
+  void SetUpSky() {
+    float cubeVertexPositions[108] = {
+        -1.0f, 1.0f,  -1.0f, -1.0f, -1.0f, -1.0f, 1.0f,  -1.0f, -1.0f, 1.0f,
+        -1.0f, -1.0f, 1.0f,  1.0f,  -1.0f, -1.0f, 1.0f,  -1.0f, 1.0f,  -1.0f,
+        -1.0f, 1.0f,  -1.0f, 1.0f,  1.0f,  1.0f,  -1.0f, 1.0f,  -1.0f, 1.0f,
+        1.0f,  1.0f,  1.0f,  1.0f,  1.0f,  -1.0f, 1.0f,  -1.0f, 1.0f,  -1.0f,
+        -1.0f, 1.0f,  1.0f,  1.0f,  1.0f,  -1.0f, -1.0f, 1.0f,  -1.0f, 1.0f,
+        1.0f,  1.0f,  1.0f,  1.0f,  -1.0f, -1.0f, 1.0f,  -1.0f, -1.0f, -1.0f,
+        -1.0f, 1.0f,  1.0f,  -1.0f, -1.0f, -1.0f, -1.0f, 1.0f,  -1.0f, -1.0f,
+        1.0f,  1.0f,  -1.0f, -1.0f, 1.0f,  1.0f,  -1.0f, 1.0f,  1.0f,  -1.0f,
+        -1.0f, 1.0f,  -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f,
+        -1.0f, 1.0f,  -1.0f, 1.0f,  1.0f,  -1.0f, 1.0f,  1.0f,  1.0f,  1.0f,
+        1.0f,  1.0f,  -1.0f, 1.0f,  1.0f,  -1.0f, 1.0f,  -1.0f};
 
-    UpdateMat(dt);
+    float cubeTextureCoord[72] = {
+        1.00f,      0.6666666f, 1.00f,
+        0.3333333f, 0.75f,      0.3333333f,  // back face lower right
+        0.75f,      0.3333333f, 0.75f,
+        0.6666666f, 1.00f,      0.6666666f,  // back face upper left
+        0.75f,      0.3333333f, 0.50f,
+        0.3333333f, 0.75f,      0.6666666f,  // right face lower right
+        0.50f,      0.3333333f, 0.50f,
+        0.6666666f, 0.75f,      0.6666666f,  // right face upper left
+        0.50f,      0.3333333f, 0.25f,
+        0.3333333f, 0.50f,      0.6666666f,  // front face lower right
+        0.25f,      0.3333333f, 0.25f,
+        0.6666666f, 0.50f,      0.6666666f,  // front face upper left
+        0.25f,      0.3333333f, 0.00f,
+        0.3333333f, 0.25f,      0.6666666f,  // left face lower right
+        0.00f,      0.3333333f, 0.00f,
+        0.6666666f, 0.25f,      0.6666666f,  // left face upper left
+        0.25f,      0.3333333f, 0.50f,
+        0.3333333f, 0.50f,      0.0000000f,  // bottom face upper right
+        0.50f,      0.0000000f, 0.25f,
+        0.0000000f, 0.25f,      0.3333333f,  // bottom face lower left
+        0.25f,      1.0000000f, 0.50f,
+        1.0000000f, 0.50f,      0.6666666f,  // top face upper right
+        0.50f,      0.6666666f, 0.25f,
+        0.6666666f, 0.25f,      1.0000000f  // top face lower left
+    };
+
+    glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof cubeVertexPositions,
+                 &cubeVertexPositions, GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof cubeTextureCoord, &cubeTextureCoord,
+                 GL_STATIC_DRAW);
+  }
+
+  void DrawModel(double dt) {
+    glUseProgram(rendering_program_.program());
     UpdateUniformMat4fv("mv_matrix", mvMat);
     UpdateUniformMat4fv("proj_matrix", pMat);
     UpdateUniformMat4fv("norm_matrix", invTrMat);
@@ -122,6 +171,47 @@ class Engine {
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
     glDrawArrays(GL_TRIANGLES, 0, model.getNumVertices());
+  }
+
+  void Draw(double dt) {
+    UpdateMat(dt);
+
+    SetUpSky();
+    DrawSky(dt);
+
+    SetUpVertices();
+    DrawModel(dt);
+  }
+
+  void DrawSky(double dt) {
+    glUseProgram(rendering_program_.program());
+
+    auto modelMat = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0));
+    auto rMat =
+        glm::rotate(glm::mat4(1.0f), thea, glm::normalize(glm::vec3(0, 1, 0)));
+    auto sMat = glm::scale(glm::mat4(1.0f), glm::vec3(100, 100, 100));
+    modelMat = rMat * modelMat;
+    modelMat = sMat * modelMat;
+    auto modelVisionMat = vMat * modelMat;
+    UpdateUniformMat4fv("mv_matrix", modelVisionMat);
+    UpdateUniformMat4fv("proj_matrix", pMat);
+
+    glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(1);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, sky_texture);
+
+    glEnable(GL_CULL_FACE);
+    glFrontFace(GL_CCW);
+    glDisable(GL_DEPTH_TEST);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    glEnable(GL_DEPTH_TEST);
   }
 
   void UpdateMat(double dt) {
@@ -204,6 +294,27 @@ class Engine {
     glClear(GL_COLOR_BUFFER_BIT);
   }
 
+  void CameraRotate(double dt, glm::vec3 axis) {
+    auto rotateMat = glm::rotate(glm::mat4(1.0f), (float)dt,
+                                 glm::normalize(glm::vec3(0, 1, 0)));
+    auto cameraVec = rotateMat * glm::vec4(cameraX, cameraY, cameraZ, 1.0f);
+    cameraX = cameraVec.x;
+    cameraY = cameraVec.y;
+    cameraZ = cameraVec.z;
+  }
+
+  void ProcessInput(GLFWwindow *window, double dt) {
+    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
+      CameraRotate(dt, glm::vec3(0, 1, 0));
+    } else if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
+      CameraRotate(-dt, glm::vec3(0, 1, 0));
+    } else if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
+      CameraRotate(dt, glm::vec3(1, 0, 0));
+    } else if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
+      CameraRotate(-dt, glm::vec3(1, 0, 0));
+    }
+  }
+
   void Start() {
     // Init glfw
     if (!glfwInit()) {
@@ -227,6 +338,7 @@ class Engine {
       double time = glfwGetTime();
       double dt = time - last_time_;
       last_time_ = time;
+      ProcessInput(window_, dt);
       Clear();
       Draw(dt);
       Logger::PrintProgramLog(rendering_program_.program());
@@ -251,7 +363,7 @@ class Engine {
   float offsetX, offsetY, offsetZ;
   ImportedModel model;
 
-  GLuint texture;
+  GLuint texture, sky_texture;
 
   int width, height;
   float aspect;
