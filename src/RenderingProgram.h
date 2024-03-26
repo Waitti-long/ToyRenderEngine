@@ -35,6 +35,26 @@ class RenderingProgram {
     return *this;
   }
 
+  RenderingProgram &TessCtrlShader(const std::string &file_path) {
+    auto content = Files::ReadShaderFile(file_path.c_str());
+    const char *c_str = content.c_str();
+    tess_ctrl_shader_ = glCreateShader(GL_TESS_CONTROL_SHADER);
+    glShaderSource(tess_ctrl_shader_, 1, &c_str, nullptr);
+    glCompileShader(tess_ctrl_shader_);
+    glAttachShader(program_, tess_ctrl_shader_);
+    return *this;
+  }
+
+  RenderingProgram &TessEvalShader(const std::string &file_path) {
+    auto content = Files::ReadShaderFile(file_path.c_str());
+    const char *c_str = content.c_str();
+    tess_eval_shader_ = glCreateShader(GL_TESS_EVALUATION_SHADER);
+    glShaderSource(tess_eval_shader_, 1, &c_str, nullptr);
+    glCompileShader(tess_eval_shader_);
+    glAttachShader(program_, tess_eval_shader_);
+    return *this;
+  }
+
   GLuint Link() {
     glLinkProgram(program_);
     return program_;
@@ -50,4 +70,6 @@ class RenderingProgram {
   GLuint program_;
   GLuint vertex_shader_;
   GLuint fragment_shader_;
+  GLuint tess_ctrl_shader_;
+  GLuint tess_eval_shader_;
 };

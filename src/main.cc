@@ -1,6 +1,7 @@
 #include "Engine.h"
+#include "TessEngine.h"
 
 int main() {
-  auto engine = Engine{};
+  auto engine = TessEngine{};
   engine.Start();
 }

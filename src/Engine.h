@@ -14,13 +14,13 @@
 #include "third_party/SOIL2/src/SOIL2/SOIL2.h"
 
 #define numVAOs 1
-#define numVBOs 3
+#define numVBOs 5
 
 class Engine {
  public:
   explicit Engine() = default;
 
-  void Init(GLFWwindow *window) {
+  virtual void Init(GLFWwindow *window) {
     rendering_program_.Create()
         .VertexShader("../glsl/vertex.glsl")
         .FragmentShader("../glsl/fragment.glsl")
@@ -44,6 +44,10 @@ class Engine {
     offsetZ = 0.0f;
 
     thea = 0.0f;
+
+    glGenVertexArrays(1, vao);
+    glBindVertexArray(vao[0]);
+    glGenBuffers(numVBOs, vbo);
   }
 
   void SetUpVertices() {
@@ -66,10 +70,6 @@ class Engine {
       nvalues.push_back(norm[i].y);
       nvalues.push_back(norm[i].z);
     }
-
-    glGenVertexArrays(1, vao);
-    glBindVertexArray(vao[0]);
-    glGenBuffers(numVBOs, vbo);
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
     glBufferData(GL_ARRAY_BUFFER, pvalues.size() * 4, &pvalues[0],
@@ -173,7 +173,7 @@ class Engine {
     glDrawArrays(GL_TRIANGLES, 0, model.getNumVertices());
   }
 
-  void Draw(double dt) {
+  virtual void Draw(double dt) {
     UpdateMat(dt);
 
     SetUpSky();
@@ -214,13 +214,17 @@ class Engine {
     glEnable(GL_DEPTH_TEST);
   }
 
-  void UpdateMat(double dt) {
+  void UpdateVPMat() {
     glfwGetFramebufferSize(window_, &width, &height);
     aspect = (float)width / (float)height;
     pMat = glm::perspective(1.0472f, aspect, 0.1f, 1000.0f);
 
     vMat = glm::translate(glm::mat4(1.0f),
                           glm::vec3(-cameraX, -cameraY, -cameraZ));
+  }
+
+  void UpdateMat(double dt) {
+    UpdateVPMat();
     thea += dt;
     auto rMat =
         glm::rotate(glm::mat4(1.0f), thea, glm::normalize(glm::vec3(1, 1, 0)));
@@ -341,6 +345,7 @@ class Engine {
       ProcessInput(window_, dt);
       Clear();
       Draw(dt);
+      Logger::CheckOpenGLError();
       Logger::PrintProgramLog(rendering_program_.program());
       glfwSwapBuffers(window_);
       glfwPollEvents();
@@ -352,7 +357,6 @@ class Engine {
     exit(EXIT_SUCCESS);
   }
 
- private:
   GLFWwindow *window_ = nullptr;
   RenderingProgram rendering_program_{};
   double last_time_{};
