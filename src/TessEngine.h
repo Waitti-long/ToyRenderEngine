@@ -14,7 +14,9 @@ class TessEngine : public Engine {
 
     SetUpMat();
 
-    cameraX = 0.5f; cameraY = -0.5f; cameraZ = 2.0f;
+    cameraX = 0.0f; cameraY = 0.0f; cameraZ = 4.0f;
+
+    texture = LoadTexture("../assets/floor_color.jpg");
   }
 
   float toRadians(float degrees) {
@@ -30,10 +32,13 @@ class TessEngine : public Engine {
     glUseProgram(rendering_program_.program());
     UpdateUniformMat4fv("mvp_matrix", pMat * vMat * mMat);
 
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
     glFrontFace(GL_CCW);
 
-    glPatchParameteri(GL_PATCH_VERTICES, 1);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    glDrawArrays(GL_PATCHES, 0, 1);
+    glPatchParameteri(GL_PATCH_VERTICES, 16);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glDrawArrays(GL_PATCHES, 0, 16);
   }
 };
