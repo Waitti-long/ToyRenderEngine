@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include "Lights.h"
 #include "RenderingModel.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/type_ptr.hpp"
@@ -21,6 +22,7 @@ class RenderingStore {
   glm::mat4 view_matrix;
   float aspect;
   std::vector<RenderingModel> models;
+  std::vector<SpotLight> spot_lights;
 };
 
 }  // namespace engine

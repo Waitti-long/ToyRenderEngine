@@ -43,30 +43,6 @@ void RenderingEngineDefault::Init() {
   }
 
   {
-    // LEFT
-    auto face = RenderingModel::Universe("face.obj", "brown.jpg");
-    face.model_mat = glm::scale(glm::mat4(1.0f), glm::vec3(1.5, 1.5, 1.5)) *
-                     glm::rotate(glm::mat4(1.0f), 2.0f, glm::vec3(1, 0, 0)) *
-                     glm::translate(glm::mat4(1.0f), glm::vec3(-1, 0, 0)) *
-                     glm::rotate(glm::mat4(1.0f), 2.0f, glm::vec3(0, 1, 0)) *
-                     face.model_mat;
-
-    store_.models.push_back(face);
-  }
-
-  {
-    // RIGHT
-    auto face = RenderingModel::Universe("face.obj", "brown.jpg");
-    face.model_mat = glm::scale(glm::mat4(1.0f), glm::vec3(1.5, 1.5, 1.5)) *
-                     glm::rotate(glm::mat4(1.0f), 2.0f, glm::vec3(1, 0, 0)) *
-                     glm::translate(glm::mat4(1.0f), glm::vec3(1, 0, 0)) *
-                     glm::rotate(glm::mat4(1.0f), 2.0f, glm::vec3(0, -1, 0)) *
-                     face.model_mat;
-
-    store_.models.push_back(face);
-  }
-
-  {
     auto cube = RenderingModel::Universe("cube.obj", "red.jpg");
     cube.model_mat = glm::scale(glm::mat4(1.0f), glm::vec3(0.5, 0.5, 0.5)) *
                      glm::rotate(glm::mat4(1.0f), 1.0f, glm::vec3(1, 0, 0)) *
@@ -84,6 +60,14 @@ void RenderingEngineDefault::Init() {
                        sphere.model_mat;
 
     store_.models.push_back(sphere);
+  }
+
+  {
+    auto spot_light = SpotLight();
+    spot_light.position = glm::vec3(0.2012, -2.01696, 0.814765);
+    spot_light.color = glm::vec4(1, 1, 1, 1);
+
+    store_.spot_lights.push_back(spot_light);
   }
 }
 
@@ -104,6 +88,17 @@ void RenderingEngineDefault::DrawModel(RenderingModel& model) {
   UpdateUniformMat4fv(model.program(), "proj_matrix",
                       store_.perspective_matrix);
   UpdateUniformMat4fv(model.program(), "norm_matrix", inv_tr_matrix);
+
+  if (!store_.spot_lights.empty()) {
+    auto& light = store_.spot_lights[0];
+    auto light_pos =
+        glm::vec3(store_.view_matrix * glm::vec4(light.position, 1.0));
+    float light_arr[3] = {light_pos.x, light_pos.y, light_pos.z};
+    float color_arr[4] = {light.color.r, light.color.g, light.color.b,
+                          light.color.a};
+    UpdateUniform3fv(model.program(), "spot_light.position", light_arr);
+    UpdateUniform4fv(model.program(), "spot_light.color", color_arr);
+  }
 
   glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
@@ -141,6 +136,31 @@ void RenderingEngineDefault::DrawModel(RenderingModel& model) {
   Logger::PrintProgramLog(model.program());
 
   glUseProgram(0);
+}
+
+void RenderingEngineDefault::HandleInput(GLFWwindow* window, double dt) {
+  auto move_light = [this](double x, double y, double z) {
+    if (!store_.spot_lights.empty()) {
+      auto& light = store_.spot_lights[0];
+      light.position += glm::vec3(x, y, z);
+      std::cout << light.position.x << ", " << light.position.y << ", "
+                << light.position.z << std::endl;
+    }
+  };
+
+  if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+    move_light(dt, 0, 0);
+  } else if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+    move_light(-dt, 0, 0);
+  } else if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+    move_light(0, dt, 0);
+  } else if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+    move_light(0, -dt, 0);
+  } else if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
+    move_light(0, 0, -dt);
+  } else if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
+    move_light(0, 0, dt);
+  }
 }
 
 }  // namespace engine

@@ -64,4 +64,16 @@ void RenderingEngine::UpdateUniformMat4fv(GLuint program,
   glProgramUniformMatrix4fv(program, loc, 1, GL_FALSE, glm::value_ptr(value));
 }
 
+void RenderingEngine::UpdateUniform4fv(GLuint program, const std::string &name,
+                                       float *value) {
+  GLuint loc = glGetUniformLocation(program, name.c_str());
+  glProgramUniform4fv(program, loc, 1, value);
+}
+
+void RenderingEngine::UpdateUniform3fv(GLuint program, const std::string &name,
+                                       float *value) {
+  GLuint loc = glGetUniformLocation(program, name.c_str());
+  glProgramUniform3fv(program, loc, 1, value);
+}
+
 }  // namespace engine

@@ -37,6 +37,12 @@ class RenderingEngine {
   void UpdateUniformMat4fv(GLuint program, const std::string& name,
                            const glm::mat4& value);
 
+  void UpdateUniform4fv(GLuint program, const std::string& name,
+                        float value[4]);
+
+  void UpdateUniform3fv(GLuint program, const std::string& name,
+                        float value[3]);
+
   static constexpr int NUM_VAO = 1;
   static constexpr int NUM_VBO = 3;
 
