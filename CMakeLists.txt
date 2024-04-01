@@ -8,6 +8,10 @@ set(CMAKE_EXE_LINKER_FLAGS "-static")
 include_directories(${CMAKE_SOURCE_DIR}/third_party/include)
 include_directories(${CMAKE_SOURCE_DIR})
 aux_source_directory(src SRC_LIST)
+aux_source_directory(src/RenderingEngine SRC_LIST_RE)
+
+message(${SRC_LIST})
+message(${SRC_LIST_RE})
 
 # SOIL2
 set(SOIL2_SRC "${CMAKE_SOURCE_DIR}/third_party/SOIL2/src/SOIL2/image_DXT.c"
@@ -35,7 +39,7 @@ set(SOIL2_SRC "${CMAKE_SOURCE_DIR}/third_party/SOIL2/src/SOIL2/image_DXT.c"
         "${CMAKE_SOURCE_DIR}/third_party/SOIL2/src/SOIL2/stbi_qoi_c.h"
         "${CMAKE_SOURCE_DIR}/third_party/SOIL2/src/SOIL2/wfETC.h")
 
-add_executable(${PROJECT_NAME} ${SRC_LIST} ${SOIL2_SRC})
+add_executable(${PROJECT_NAME} ${SRC_LIST} ${SRC_LIST_RE} ${SOIL2_SRC})
 
 target_link_directories(${PROJECT_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/third_party)
 target_link_libraries(${PROJECT_NAME} opengl32 glew32 glfw3)

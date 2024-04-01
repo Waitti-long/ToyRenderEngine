@@ -1,7 +1,7 @@
-#include "Engine.h"
-#include "TessEngine.h"
+#include "RenderingEngine/RenderingEngineDefault.h"
 
 int main() {
-  auto engine = TessEngine{};
-  engine.Start();
+  auto& e =
+      engine::RenderingEngine::Singleton<engine::RenderingEngineDefault>();
+  e.Start();
 }
