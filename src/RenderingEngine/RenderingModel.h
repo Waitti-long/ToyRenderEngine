@@ -31,8 +31,6 @@ class RenderingModel {
 
   void ActiveTexture();
 
-  void AttachShader(const std::string& content, int type) const;
-
   glm::mat4 model_mat = glm::mat4(1.0f);
   std::vector<float> pvalues;
   std::vector<float> tvalues;

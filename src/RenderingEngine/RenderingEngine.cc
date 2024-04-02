@@ -76,4 +76,51 @@ void RenderingEngine::UpdateUniform3fv(GLuint program, const std::string &name,
   glProgramUniform3fv(program, loc, 1, value);
 }
 
+void RenderingEngine::UpdateUniform1fv(GLuint program, const std::string &name,
+                                       float value) {
+  GLuint loc = glGetUniformLocation(program, name.c_str());
+  glProgramUniform1fv(program, loc, 1, &value);
+}
+
+GLuint RenderingEngine::UseProgram(RenderingEngine::ProgramType type) {
+  int index = (int)type;
+  auto &program = programs_[index];
+  if (program == 0) {
+    switch (type) {
+      case ProgramType::DEFAULT:
+        program = glCreateProgram();
+        AttachShader(program,
+                     Files::ReadShaderFile("../glsl/universe/vertex.glsl"),
+                     GL_VERTEX_SHADER);
+        AttachShader(program,
+                     Files::ReadShaderFile("../glsl/universe/fragment.glsl"),
+                     GL_FRAGMENT_SHADER);
+        glLinkProgram(program);
+        break;
+      case ProgramType::SHADOW_MAP:
+        program = glCreateProgram();
+        AttachShader(program, Files::ReadShaderFile("../glsl/sm_vert.glsl"),
+                     GL_VERTEX_SHADER);
+        AttachShader(program, Files::ReadShaderFile("../glsl/sm_frag.glsl"),
+                     GL_FRAGMENT_SHADER);
+        glLinkProgram(program);
+        break;
+      default:
+        std::cout << "unsupported program type: " << index << std::endl;
+        exit(EXIT_FAILURE);
+    }
+  }
+  glUseProgram(program);
+  return program;
+}
+
+void RenderingEngine::AttachShader(GLuint program, const std::string &content,
+                                   int type) {
+  const char *c_str = content.c_str();
+  GLuint shader = glCreateShader(type);
+  glShaderSource(shader, 1, &c_str, nullptr);
+  glCompileShader(shader);
+  glAttachShader(program, shader);
+}
+
 }  // namespace engine

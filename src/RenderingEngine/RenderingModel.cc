@@ -3,6 +3,7 @@
 #include <iostream>
 #include <utility>
 
+#include "RenderingEngine.h"
 #include "third_party/SOIL2/src/SOIL2/SOIL2.h"
 
 namespace engine {
@@ -14,10 +15,12 @@ RenderingModel::RenderingModel(const std::string& model_path, std::string vert,
       frag_content_(std::move(frag)) {}
 
 RenderingModel& RenderingModel::Link() {
-  program_ = glCreateProgram();
-  AttachShader(vert_content_, GL_VERTEX_SHADER);
-  AttachShader(frag_content_, GL_FRAGMENT_SHADER);
-  glLinkProgram(program_);
+  if (!vert_content_.empty() && !frag_content_.empty()) {
+    program_ = glCreateProgram();
+    RenderingEngine::AttachShader(program_, vert_content_, GL_VERTEX_SHADER);
+    RenderingEngine::AttachShader(program_, frag_content_, GL_FRAGMENT_SHADER);
+    glLinkProgram(program_);
+  }
 
   {
     auto vert = model_.getVertices();
@@ -46,19 +49,11 @@ RenderingModel& RenderingModel::Link() {
   return *this;
 }
 
-void RenderingModel::AttachShader(const std::string& content, int type) const {
-  const char* c_str = content.c_str();
-  GLuint shader = glCreateShader(type);
-  glShaderSource(shader, 1, &c_str, nullptr);
-  glCompileShader(shader);
-  glAttachShader(program_, shader);
-}
-
 RenderingModel RenderingModel::FromPath(const std::string& model_path,
                                         const std::string& vert_path,
                                         const std::string& frag_path) {
-  auto vert = Files::ReadShaderFile(vert_path.c_str());
-  auto frag = Files::ReadShaderFile(frag_path.c_str());
+  auto vert = vert_path.empty() ? "" : Files::ReadShaderFile(vert_path.c_str());
+  auto frag = frag_path.empty() ? "" : Files::ReadShaderFile(frag_path.c_str());
   return RenderingModel{model_path, vert, frag};
 }
 
@@ -71,9 +66,7 @@ RenderingModel RenderingModel::FromString(const std::string& model_path,
 RenderingModel RenderingModel::Universe(
     const std::string& simple_model_path,
     const std::string& simple_texture_path) {
-  return FromPath("../assets/" + simple_model_path,
-                  "../glsl/universe/vertex.glsl",
-                  "../glsl/universe/fragment.glsl")
+  return FromPath("../assets/" + simple_model_path, "", "")
       .LoadTexture("../assets/" + simple_texture_path)
       .Link();
 }

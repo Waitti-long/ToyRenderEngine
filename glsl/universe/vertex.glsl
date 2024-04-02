@@ -12,6 +12,10 @@ out vec2 tc;
 out vec3 varyingNormal; // 视觉空间顶点法向量
 out vec4 varyingVertPos;
 
+// shadow map
+uniform mat4 shadow_mvp;
+out vec4 shadow_coord;
+
 void main() {
     vec4 P = mv_matrix * vec4(position, 1.0);
 
@@ -19,4 +23,7 @@ void main() {
     varyingVertPos = P;
     tc = texCoord;
     varyingNormal = normalize((norm_matrix * vec4(normal, 1.0)).xyz);
+
+    // shadow map
+    shadow_coord = shadow_mvp * vec4(position, 1.0);
 }

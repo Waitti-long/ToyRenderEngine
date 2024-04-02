@@ -4,6 +4,7 @@
 
 #include "Lights.h"
 #include "RenderingModel.h"
+#include "ShadowMap.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/type_ptr.hpp"
 
@@ -23,6 +24,7 @@ class RenderingStore {
   float aspect;
   std::vector<RenderingModel> models;
   std::vector<SpotLight> spot_lights;
+  ShadowMap shadow_map;
 };
 
 }  // namespace engine

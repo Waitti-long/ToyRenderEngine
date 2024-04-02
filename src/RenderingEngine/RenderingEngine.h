@@ -14,6 +14,8 @@ namespace engine {
 
 class RenderingEngine {
  public:
+  enum class ProgramType : uint32_t { DEFAULT = 0, SHADOW_MAP = 1, COUNT = 2 };
+
   virtual void Init();
 
   virtual void HandleInput(GLFWwindow* window, double dt) {}
@@ -43,6 +45,12 @@ class RenderingEngine {
   void UpdateUniform3fv(GLuint program, const std::string& name,
                         float value[3]);
 
+  void UpdateUniform1fv(GLuint program, const std::string& name, float value);
+
+  GLuint UseProgram(ProgramType type);
+
+  static void AttachShader(GLuint program, const std::string& content, int type);
+
   static constexpr int NUM_VAO = 1;
   static constexpr int NUM_VBO = 3;
 
@@ -54,6 +62,8 @@ class RenderingEngine {
 
   GLuint vao[NUM_VAO]{};
   GLuint vbo[NUM_VBO]{};
+
+  GLuint programs_[int(ProgramType::COUNT)]{};
 };
 
 }  // namespace engine
