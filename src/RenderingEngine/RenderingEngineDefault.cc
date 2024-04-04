@@ -71,6 +71,7 @@ void RenderingEngineDefault::Init() {
   }
 
   settings_.shadow = RenderingSettings::Shadow::SHADOW_MAP;
+  settings_.ao = RenderingSettings::AO::SSAO;
 }
 
 void RenderingEngineDefault::Draw(double dt) {

@@ -26,9 +26,10 @@ void main() {
     vec3 V = normalize(-varyingVertPos.xyz);
     vec3 R = reflect(-L, N);
 
-    float k = 0.1;
+    float k = 0.4;
     if (enable_shadow_map == 0.0 || textureProj(shadow_texture, shadow_coord) == 1.0) {
-        k = k + max(dot(N, L), 0.0) + pow(max(dot(R, V), 0.0f), 3);
+        k = k + max(dot(N, L), 0.0) + pow(max(dot(R, V), 0.0f), 2);
     }
     color = texture(samp, tc) * k;
+    color.rgb = vec3(pow(color.r, 2.2), pow(color.g, 2.2), pow(color.b, 2.2));
 }
