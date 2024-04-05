@@ -5,13 +5,13 @@ struct SpotLight {
     vec4 color;
 };
 
-layout (binding = 0) uniform sampler2D samp;
 uniform SpotLight spot_light;
 uniform mat4 norm_matrix;
 
 in vec2 tc;
 in vec3 varyingNormal;
 in vec4 varyingVertPos;
+in vec3 varyingColor;
 
 out vec4 color;
 
@@ -26,10 +26,10 @@ void main() {
     vec3 V = normalize(-varyingVertPos.xyz);
     vec3 R = reflect(-L, N);
 
-    float k = 0.4;
+    float k = 0.3;
     if (enable_shadow_map == 0.0 || textureProj(shadow_texture, shadow_coord) == 1.0) {
         k = k + max(dot(N, L), 0.0) + pow(max(dot(R, V), 0.0f), 2);
     }
-    color = texture(samp, tc) * k;
-    color.rgb = vec3(pow(color.r, 2.2), pow(color.g, 2.2), pow(color.b, 2.2));
+    color = vec4(varyingColor * k, 1.0);
+    color.rgb = vec3(pow(color.r, 1 / 2.2), pow(color.g, 1 / 2.2), pow(color.b, 1 / 2.2));
 }

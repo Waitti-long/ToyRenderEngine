@@ -22,49 +22,14 @@ void RenderingEngineDefault::Init() {
   { store_.MoveCamera(glm::vec3(0, 0, 4)); }
 
   {
-    // DOWN
-    auto face = RenderingModel::Universe("face.obj", "brown.jpg");
-    face.model_mat = glm::scale(glm::mat4(1.0f), glm::vec3(1.5, 1.5, 1.5)) *
-                     glm::rotate(glm::mat4(1.0f), 1.0f, glm::vec3(1, 0, 0)) *
-                     face.model_mat;
-
-    store_.models.push_back(face);
-  }
-
-  {
-    // BACK
-    auto face = RenderingModel::Universe("face.obj", "brown.jpg");
-    face.model_mat = glm::scale(glm::mat4(1.0f), glm::vec3(1.5, 1.5, 1.5)) *
-                     glm::rotate(glm::mat4(1.0f), 2.0f, glm::vec3(1, 0, 0)) *
-                     glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, -1)) *
-                     face.model_mat;
-
-    store_.models.push_back(face);
-  }
-
-  {
-    auto cube = RenderingModel::Universe("cube.obj", "red.jpg");
-    cube.model_mat = glm::scale(glm::mat4(1.0f), glm::vec3(0.5, 0.5, 0.5)) *
-                     glm::rotate(glm::mat4(1.0f), 1.0f, glm::vec3(1, 0, 0)) *
-                     glm::translate(glm::mat4(1.0f), glm::vec3(-2, 1, 0)) *
-                     cube.model_mat;
-
-    store_.models.push_back(cube);
-  }
-
-  {
-    auto sphere = RenderingModel::Universe("sphere.obj", "green.jpg");
-    sphere.model_mat = glm::scale(glm::mat4(1.0f), glm::vec3(0.5, 0.5, 0.5)) *
-                       glm::rotate(glm::mat4(1.0f), 1.0f, glm::vec3(1, 0, 0)) *
-                       glm::translate(glm::mat4(1.0f), glm::vec3(2, 1, 0)) *
-                       sphere.model_mat;
-
-    store_.models.push_back(sphere);
+    auto model = RenderingModel::LoadModel("../assets/cornell-box.obj");
+    model.model_mat = glm::translate(model.model_mat, glm::vec3(0.0, -1, 0.0));
+    store_.models.push_back(model);
   }
 
   {
     auto spot_light = SpotLight();
-    spot_light.position = glm::vec3(-2.29454, 4.42509, 3.99931);
+    spot_light.position = glm::vec3(1.1003, 2.76733, 0.165055);
     spot_light.color = glm::vec4(1, 1, 1, 1);
 
     store_.spot_lights.push_back(spot_light);
@@ -143,31 +108,12 @@ void RenderingEngineDefault::DrawModelWidthProgramDefault(RenderingModel& model,
     UpdateUniform4fv(program, "spot_light.color", color_arr);
   }
 
-  glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-  glEnableVertexAttribArray(0);
-  glBufferData(GL_ARRAY_BUFFER, model.pvalues.size() * 4, &model.pvalues[0],
-               GL_STATIC_DRAW);
-
-  glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
-  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, 0);
-  glEnableVertexAttribArray(1);
-  glBufferData(GL_ARRAY_BUFFER, model.tvalues.size() * 4, &model.tvalues[0],
-               GL_STATIC_DRAW);
-
-  glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
-  glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, 0);
-  glEnableVertexAttribArray(2);
-  glBufferData(GL_ARRAY_BUFFER, model.nvalues.size() * 4, &model.nvalues[0],
-               GL_STATIC_DRAW);
-
-  model.ActiveTexture();
-
   glEnable(GL_CULL_FACE);
   glFrontFace(GL_CCW);
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LEQUAL);
-  glDrawArrays(GL_TRIANGLES, 0, model.num_vertices);
+
+  model.Draw(this, program);
 
   Logger::PrintProgramLog(program);
   glUseProgram(0);
@@ -223,12 +169,7 @@ void RenderingEngineDefault::DrawModelsWidthProgramShadowMap(GLuint program) {
     UpdateUniformMat4fv(program, "proj_matrix",
                         store_.shadow_map.light_project_matrix);
 
-    glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-    glEnableVertexAttribArray(0);
-    glBufferData(GL_ARRAY_BUFFER, model.pvalues.size() * 4, &model.pvalues[0],
-                 GL_STATIC_DRAW);
-    glDrawArrays(GL_TRIANGLES, 0, model.num_vertices);
+    model.Draw(this, program);
   }
 
   glDisable(GL_POLYGON_OFFSET_FILL);

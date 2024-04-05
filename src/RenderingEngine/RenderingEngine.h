@@ -49,7 +49,8 @@ class RenderingEngine {
 
   GLuint UseProgram(ProgramType type);
 
-  static void AttachShader(GLuint program, const std::string& content, int type);
+  static void AttachShader(GLuint program, const std::string& content,
+                           int type);
 
   static constexpr int NUM_VAO = 1;
   static constexpr int NUM_VBO = 3;

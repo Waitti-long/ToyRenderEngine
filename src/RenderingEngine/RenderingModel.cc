@@ -1,3 +1,5 @@
+#define TINYOBJLOADER_IMPLEMENTATION
+
 #include "RenderingModel.h"
 
 #include <iostream>
@@ -5,97 +7,142 @@
 
 #include "RenderingEngine.h"
 #include "third_party/SOIL2/src/SOIL2/SOIL2.h"
+#include "tiny_obj_loader.h"
 
 namespace engine {
 
-RenderingModel::RenderingModel(const std::string& model_path, std::string vert,
-                               std::string frag)
-    : model_(model_path.c_str()),
-      vert_content_(std::move(vert)),
-      frag_content_(std::move(frag)) {}
+void Mesh::Setup() {
+  glGenVertexArrays(1, &VAO);
+  glGenBuffers(1, &VBO);
 
-RenderingModel& RenderingModel::Link() {
-  if (!vert_content_.empty() && !frag_content_.empty()) {
-    program_ = glCreateProgram();
-    RenderingEngine::AttachShader(program_, vert_content_, GL_VERTEX_SHADER);
-    RenderingEngine::AttachShader(program_, frag_content_, GL_FRAGMENT_SHADER);
-    glLinkProgram(program_);
+  glBindVertexArray(VAO);
+  glBindBuffer(GL_ARRAY_BUFFER, VBO);
+  glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), &vertices[0],
+               GL_STATIC_DRAW);
+
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
+  glEnableVertexAttribArray(1);
+  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                        (void*)offsetof(Vertex, texture_coord));
+  glEnableVertexAttribArray(2);
+  glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                        (void*)offsetof(Vertex, normal));
+  glEnableVertexAttribArray(3);
+  glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                        (void*)offsetof(Vertex, color));
+
+  glBindVertexArray(0);
+}
+
+RenderingModel::RenderingModel(std::string  path) : model_path_(std::move(path)) {}
+
+RenderingModel RenderingModel::LoadModel(const std::string& path) {
+  auto model = RenderingModel(path);
+  model.LoadModel();
+  return model;
+}
+
+void RenderingModel::LoadModel() {
+  std::vector<Vertex> vertices;
+  std::vector<GLuint> indices;
+  std::vector<Texture> textures;
+
+  tinyobj::attrib_t attrib;
+  std::vector<tinyobj::shape_t> shapes;
+  std::vector<tinyobj::material_t> materials;
+
+  std::string warn, err;
+
+  bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err,
+                              model_path_.c_str());
+
+  if (!warn.empty()) {
+    std::cout << warn << std::endl;
   }
 
-  {
-    auto vert = model_.getVertices();
-    auto tex = model_.getTextureCoords();
-    auto norm = model_.getNormals();
-    int numObjVertices = model_.getNumVertices();
+  if (!err.empty()) {
+    std::cout << err << std::endl;
+  }
 
-    pvalues.clear();
-    tvalues.clear();
-    nvalues.clear();
+  if (!ret) {
+    exit(-1);
+  }
 
-    for (int i = 0; i < numObjVertices; i++) {
-      pvalues.push_back(vert[i].x);
-      pvalues.push_back(vert[i].y);
-      pvalues.push_back(vert[i].z);
-      tvalues.push_back(tex[i].s);
-      tvalues.push_back(tex[i].t);
-      nvalues.push_back(norm[i].x);
-      nvalues.push_back(norm[i].y);
-      nvalues.push_back(norm[i].z);
+  for (auto& shape : shapes) {
+    size_t index_offset = 0;
+    for (size_t f = 0; f < shape.mesh.num_face_vertices.size(); f++) {
+      auto fv = size_t(shape.mesh.num_face_vertices[f]);
+
+      for (size_t v = 0; v < fv; v++) {
+        Vertex vertex{};
+
+        auto idx = shape.mesh.indices[index_offset + v];
+        vertex.position.x = attrib.vertices[3 * size_t(idx.vertex_index) + 0];
+        vertex.position.y = attrib.vertices[3 * size_t(idx.vertex_index) + 1];
+        vertex.position.z = attrib.vertices[3 * size_t(idx.vertex_index) + 2];
+
+        if (idx.normal_index >= 0) {
+          std::cout << idx.normal_index << std::endl;
+          vertex.normal.x = attrib.normals[3 * size_t(idx.normal_index) + 0];
+          vertex.normal.y = attrib.normals[3 * size_t(idx.normal_index) + 1];
+          vertex.normal.z = attrib.normals[3 * size_t(idx.normal_index) + 2];
+        }
+
+        if (idx.texcoord_index >= 0) {
+          vertex.texture_coord.x =
+              attrib.texcoords[2 * size_t(idx.texcoord_index) + 0];
+          vertex.texture_coord.y =
+              attrib.texcoords[2 * size_t(idx.texcoord_index) + 1];
+        }
+
+        vertex.color.x = attrib.colors[3 * size_t(idx.vertex_index) + 0];
+        vertex.color.y = attrib.colors[3 * size_t(idx.vertex_index) + 0];
+        vertex.color.z = attrib.colors[3 * size_t(idx.vertex_index) + 0];
+
+        auto material_id = shape.mesh.material_ids[f];
+        if (material_id >= 0) {
+          auto& material = materials[material_id];
+          vertex.color.x = material.diffuse[0];
+          vertex.color.y = material.diffuse[1];
+          vertex.color.z = material.diffuse[2];
+        }
+
+        vertices.push_back(vertex);
+      }
+      index_offset += fv;
     }
-
-    num_vertices = numObjVertices;
   }
 
-  return *this;
+  meshes.emplace_back(vertices, textures);
 }
 
-RenderingModel RenderingModel::FromPath(const std::string& model_path,
-                                        const std::string& vert_path,
-                                        const std::string& frag_path) {
-  auto vert = vert_path.empty() ? "" : Files::ReadShaderFile(vert_path.c_str());
-  auto frag = frag_path.empty() ? "" : Files::ReadShaderFile(frag_path.c_str());
-  return RenderingModel{model_path, vert, frag};
-}
-
-RenderingModel RenderingModel::FromString(const std::string& model_path,
-                                          const std::string& vert_content,
-                                          const std::string& frag_content) {
-  return RenderingModel{model_path, vert_content, frag_content};
-}
-
-RenderingModel RenderingModel::Universe(
-    const std::string& simple_model_path,
-    const std::string& simple_texture_path) {
-  return FromPath("../assets/" + simple_model_path, "", "")
-      .LoadTexture("../assets/" + simple_texture_path)
-      .Link();
-}
-
-RenderingModel& RenderingModel::LoadTexture(const std::string& path) {
-  texture_ = SOIL_load_OGL_texture(path.c_str(), SOIL_LOAD_AUTO,
-                                   SOIL_CREATE_NEW_ID, SOIL_FLAG_INVERT_Y);
-  if (texture_ == 0) {
-    std::cout << "could not find texture file: " << path << std::endl;
-    exit(EXIT_FAILURE);
+void RenderingModel::ActivateTextureMipMap(GLuint texture) {
+  glBindTexture(GL_TEXTURE_2D, texture);
+  // mipmap
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                  GL_LINEAR_MIPMAP_LINEAR);
+  glGenerateMipmap(GL_TEXTURE_2D);
+  // 各向异性过滤
+  if (glewIsSupported("GL_EXT_texture_filter_anisotropic")) {
+    GLfloat anisoSettings = 0.0f;
+    glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &anisoSettings);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT,
+                    anisoSettings);
   }
-  return *this;
 }
 
-void RenderingModel::ActiveTexture() {
-  if (texture_ != 0) {
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture_);
-    // mipmap
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
-                    GL_LINEAR_MIPMAP_LINEAR);
-    glGenerateMipmap(GL_TEXTURE_2D);
-    // 各向异性过滤
-    if (glewIsSupported("GL_EXT_texture_filter_anisotropic")) {
-      GLfloat anisoSettings = 0.0f;
-      glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &anisoSettings);
-      glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT,
-                      anisoSettings);
-    }
+void RenderingModel::Draw(RenderingEngine* engine, GLuint program) {
+  for (auto& mesh : meshes) {
+    glBindVertexArray(mesh.VAO);
+//    for (unsigned int i = 0; i < mesh.textures.size(); i++) {
+//      glActiveTexture(GL_TEXTURE0 + i);
+//      glBindTexture(GL_TEXTURE_2D, mesh.textures[i].id);
+//    }
+//    glActiveTexture(GL_TEXTURE0);
+    glBindVertexArray(mesh.VAO);
+    glDrawArrays(GL_TRIANGLES, 0, mesh.vertices.size() * 3);
+    glBindVertexArray(0);
   }
 }
 

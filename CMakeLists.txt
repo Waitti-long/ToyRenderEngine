@@ -42,7 +42,8 @@ set(SOIL2_SRC "${CMAKE_SOURCE_DIR}/third_party/SOIL2/src/SOIL2/image_DXT.c"
 add_executable(${PROJECT_NAME} ${SRC_LIST} ${SRC_LIST_RE} ${SOIL2_SRC})
 
 target_link_directories(${PROJECT_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/third_party)
-target_link_libraries(${PROJECT_NAME} opengl32 glew32 glfw3 assimp)
+
+target_link_libraries(${PROJECT_NAME} opengl32 glew32 glfw3)
 
 if (CMAKE_SYSTEM_NAME MATCHES "Windows")
     message(STATUS "Copy dll to binary dir")

@@ -2,50 +2,61 @@
 
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "GL/glew.h"
-#include "src/ImportedModel.h"
+#include "glm/glm.hpp"
 #include "src/files.h"
 
 namespace engine {
-class RenderingModel {
+
+class RenderingEngine;
+
+class Vertex {
  public:
-  static RenderingModel FromPath(const std::string& model_path,
-                                 const std::string& vert_path,
-                                 const std::string& frag_path);
+  glm::vec3 position;
+  glm::vec3 normal;
+  glm::vec2 texture_coord;
+  glm::vec3 color;
+};
 
-  static RenderingModel FromString(const std::string& model_path,
-                                   const std::string& vert_content,
-                                   const std::string& frag_content);
+class Texture {
+ public:
+  GLuint id;
+  std::string type;
+};
 
-  static RenderingModel Universe(const std::string& simple_model_path,
-                                 const std::string& simple_texture_path);
+class Mesh {
+ public:
+  Mesh(std::vector<Vertex> vertices, std::vector<Texture> textures)
+      : vertices(std::move(vertices)), textures(std::move(textures)) {
+    Setup();
+  }
 
-  RenderingModel& Link();
-
-  GLuint program() const { return program_; }
-
-  GLuint texture() const { return texture_; }
-
-  RenderingModel& LoadTexture(const std::string& path);
-
-  void ActiveTexture();
-
-  glm::mat4 model_mat = glm::mat4(1.0f);
-  std::vector<float> pvalues;
-  std::vector<float> tvalues;
-  std::vector<float> nvalues;
-  int num_vertices;
+  std::vector<Vertex> vertices;
+  std::vector<Texture> textures;
+  GLuint VAO, VBO;
 
  private:
-  RenderingModel(const std::string& model_path, std::string vert,
-                 std::string frag);
+  void Setup();
+};
 
-  ImportedModel model_;
-  GLuint program_;
-  GLuint texture_;
+class RenderingModel {
+ public:
+  static RenderingModel LoadModel(const std::string& model_path);
+
+  void LoadModel();
+
+  static void ActivateTextureMipMap(GLuint texture);
+
+  void Draw(RenderingEngine* engine, GLuint program);
+
+  std::vector<Mesh> meshes;
+  glm::mat4 model_mat = glm::mat4(1.0f);
+
+ private:
+  explicit RenderingModel(std::string  model_path);
+
   std::string model_path_;
-  std::string vert_content_;
-  std::string frag_content_;
 };
 }  // namespace engine
