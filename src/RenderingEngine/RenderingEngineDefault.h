@@ -12,9 +12,11 @@ class RenderingEngineDefault : public RenderingEngine {
 
   void HandleInput(GLFWwindow* window, double dt) override;
 
-  void DrawModelWidthProgramDefault(RenderingModel& model, GLuint program);
+  void DrawModelWithProgramDefault(RenderingModel& model, GLuint program);
 
-  void DrawModelsWidthProgramShadowMap(GLuint program);
+  void DrawModelsWithProgramShadowMap(GLuint program);
+
+  void DrawModelsWithProgramGBuffer(GLuint program);
 };
 
 }  // namespace engine

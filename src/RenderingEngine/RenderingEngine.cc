@@ -2,6 +2,12 @@
 
 namespace engine {
 
+void APIENTRY glDebugOutput(GLenum source, GLenum type, GLuint id,
+                            GLenum severity, GLsizei length,
+                            const GLchar *message, const void *userParam) {
+  std::cout << "Debug : " << message << std::endl;
+}
+
 void RenderingEngine::WindowChanged(GLFWwindow *window, int new_width,
                                     int new_height) {
   glViewport(0, 0, new_width, new_height);
@@ -15,6 +21,7 @@ void RenderingEngine::Start() {
   }
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+  glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
   window_ = glfwCreateWindow(1200, 1200, "RenderingEngine", nullptr, nullptr);
   glfwMakeContextCurrent(window_);
 
@@ -55,6 +62,15 @@ void RenderingEngine::Init() {
   glGenVertexArrays(NUM_VAO, vao);
   glBindVertexArray(vao[0]);
   glGenBuffers(NUM_VBO, vbo);
+
+  {
+    // debug
+    glEnable(GL_DEBUG_OUTPUT);
+    glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+    glDebugMessageCallback(glDebugOutput, NULL);
+    glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL,
+                          GL_TRUE);
+  }
 }
 
 void RenderingEngine::UpdateUniformMat4fv(GLuint program,
@@ -102,6 +118,14 @@ GLuint RenderingEngine::UseProgram(RenderingEngine::ProgramType type) {
         AttachShader(program, Files::ReadShaderFile("../glsl/sm_vert.glsl"),
                      GL_VERTEX_SHADER);
         AttachShader(program, Files::ReadShaderFile("../glsl/sm_frag.glsl"),
+                     GL_FRAGMENT_SHADER);
+        glLinkProgram(program);
+        break;
+      case ProgramType::G_BUFFER:
+        program = glCreateProgram();
+        AttachShader(program, Files::ReadShaderFile("../glsl/g_vert.glsl"),
+                     GL_VERTEX_SHADER);
+        AttachShader(program, Files::ReadShaderFile("../glsl/g_frag.glsl"),
                      GL_FRAGMENT_SHADER);
         glLinkProgram(program);
         break;

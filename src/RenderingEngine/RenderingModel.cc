@@ -5,8 +5,6 @@
 #include <iostream>
 #include <utility>
 
-#include "RenderingEngine.h"
-#include "third_party/SOIL2/src/SOIL2/SOIL2.h"
 #include "tiny_obj_loader.h"
 
 namespace engine {
@@ -35,7 +33,8 @@ void Mesh::Setup() {
   glBindVertexArray(0);
 }
 
-RenderingModel::RenderingModel(std::string  path) : model_path_(std::move(path)) {}
+RenderingModel::RenderingModel(std::string path)
+    : model_path_(std::move(path)) {}
 
 RenderingModel RenderingModel::LoadModel(const std::string& path) {
   auto model = RenderingModel(path);
@@ -83,7 +82,6 @@ void RenderingModel::LoadModel() {
         vertex.position.z = attrib.vertices[3 * size_t(idx.vertex_index) + 2];
 
         if (idx.normal_index >= 0) {
-          std::cout << idx.normal_index << std::endl;
           vertex.normal.x = attrib.normals[3 * size_t(idx.normal_index) + 0];
           vertex.normal.y = attrib.normals[3 * size_t(idx.normal_index) + 1];
           vertex.normal.z = attrib.normals[3 * size_t(idx.normal_index) + 2];
@@ -132,14 +130,9 @@ void RenderingModel::ActivateTextureMipMap(GLuint texture) {
   }
 }
 
-void RenderingModel::Draw(RenderingEngine* engine, GLuint program) {
+void RenderingModel::Draw() {
   for (auto& mesh : meshes) {
     glBindVertexArray(mesh.VAO);
-//    for (unsigned int i = 0; i < mesh.textures.size(); i++) {
-//      glActiveTexture(GL_TEXTURE0 + i);
-//      glBindTexture(GL_TEXTURE_2D, mesh.textures[i].id);
-//    }
-//    glActiveTexture(GL_TEXTURE0);
     glBindVertexArray(mesh.VAO);
     glDrawArrays(GL_TRIANGLES, 0, mesh.vertices.size() * 3);
     glBindVertexArray(0);

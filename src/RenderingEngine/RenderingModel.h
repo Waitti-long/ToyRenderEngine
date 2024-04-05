@@ -49,7 +49,7 @@ class RenderingModel {
 
   static void ActivateTextureMipMap(GLuint texture);
 
-  void Draw(RenderingEngine* engine, GLuint program);
+  void Draw();
 
   std::vector<Mesh> meshes;
   glm::mat4 model_mat = glm::mat4(1.0f);

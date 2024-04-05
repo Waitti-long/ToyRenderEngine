@@ -4,11 +4,27 @@
 
 #include "Lights.h"
 #include "RenderingModel.h"
-#include "ShadowMap.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/type_ptr.hpp"
 
 namespace engine {
+
+class ShadowMap {
+ public:
+  GLuint shadow_buffer;
+  GLuint shadow_texture;
+  glm::mat4 light_view_matrix;
+  glm::mat4 light_project_matrix;
+};
+
+class GBuffer {
+ public:
+  GLuint g_buffer;
+  GLuint g_position;
+  GLuint g_normal;
+  GLuint g_color;
+  GLuint g_depth;
+};
 
 class RenderingStore {
  public:
@@ -25,6 +41,7 @@ class RenderingStore {
   std::vector<RenderingModel> models;
   std::vector<SpotLight> spot_lights;
   ShadowMap shadow_map;
+  GBuffer g_buffer;
 };
 
 }  // namespace engine

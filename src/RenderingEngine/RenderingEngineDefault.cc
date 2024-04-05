@@ -37,15 +37,23 @@ void RenderingEngineDefault::Init() {
 
   settings_.shadow = RenderingSettings::Shadow::SHADOW_MAP;
   settings_.ao = RenderingSettings::AO::SSAO;
+
+  if (settings_.ao != RenderingSettings::AO::NONE) {
+    settings_.need_gbuffer = true;
+  }
 }
 
 void RenderingEngineDefault::Draw(double dt) {
+  if (settings_.need_gbuffer) {
+    DrawModelsWithProgramGBuffer(UseProgram(ProgramType::G_BUFFER));
+  }
+
   if (settings_.shadow == RenderingSettings::Shadow::SHADOW_MAP) {
-    DrawModelsWidthProgramShadowMap(UseProgram(ProgramType::SHADOW_MAP));
+    DrawModelsWithProgramShadowMap(UseProgram(ProgramType::SHADOW_MAP));
   }
 
   for (RenderingModel& model : store_.models) {
-    DrawModelWidthProgramDefault(model, UseProgram(ProgramType::DEFAULT));
+    DrawModelWithProgramDefault(model, UseProgram(ProgramType::DEFAULT));
   }
 }
 
@@ -74,8 +82,8 @@ void RenderingEngineDefault::HandleInput(GLFWwindow* window, double dt) {
   }
 }
 
-void RenderingEngineDefault::DrawModelWidthProgramDefault(RenderingModel& model,
-                                                          GLuint program) {
+void RenderingEngineDefault::DrawModelWithProgramDefault(RenderingModel& model,
+                                                         GLuint program) {
   glm::mat4 mv_matrix = store_.view_matrix * model.model_mat;
   glm::mat4 inv_tr_matrix = glm::transpose(glm::inverse(mv_matrix));
   UpdateUniformMat4fv(program, "mv_matrix", mv_matrix);
@@ -113,13 +121,13 @@ void RenderingEngineDefault::DrawModelWidthProgramDefault(RenderingModel& model,
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LEQUAL);
 
-  model.Draw(this, program);
+  model.Draw();
 
   Logger::PrintProgramLog(program);
   glUseProgram(0);
 }
 
-void RenderingEngineDefault::DrawModelsWidthProgramShadowMap(GLuint program) {
+void RenderingEngineDefault::DrawModelsWithProgramShadowMap(GLuint program) {
   int width, height;
   GLuint& shadow_buffer = store_.shadow_map.shadow_buffer;
   GLuint& shadow_texture = store_.shadow_map.shadow_texture;
@@ -169,7 +177,7 @@ void RenderingEngineDefault::DrawModelsWidthProgramShadowMap(GLuint program) {
     UpdateUniformMat4fv(program, "proj_matrix",
                         store_.shadow_map.light_project_matrix);
 
-    model.Draw(this, program);
+    model.Draw();
   }
 
   glDisable(GL_POLYGON_OFFSET_FILL);
@@ -180,6 +188,89 @@ void RenderingEngineDefault::DrawModelsWidthProgramShadowMap(GLuint program) {
 
   Logger::PrintProgramLog(program);
   glUseProgram(0);
+}
+
+void RenderingEngineDefault::DrawModelsWithProgramGBuffer(GLuint program) {
+  auto& g_buffer = store_.g_buffer;
+  if (g_buffer.g_buffer == 0) {
+    glGenFramebuffers(1, &g_buffer.g_buffer);
+    glGenTextures(1, &g_buffer.g_position);
+    glGenTextures(1, &g_buffer.g_normal);
+    glGenTextures(1, &g_buffer.g_color);
+    glGenTextures(1, &g_buffer.g_depth);
+  }
+
+  int width, height;
+  glfwGetFramebufferSize(window_, &width, &height);
+
+  { glBindFramebuffer(GL_FRAMEBUFFER, g_buffer.g_buffer); }
+
+  {
+    glBindTexture(GL_TEXTURE_2D, g_buffer.g_position);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_FLOAT,
+                 NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+                           g_buffer.g_position, 0);
+  }
+
+  {
+    glBindTexture(GL_TEXTURE_2D, g_buffer.g_normal);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, width, height, 0, GL_RGB,
+                 GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D,
+                           g_buffer.g_normal, 0);
+  }
+
+  {
+    glBindTexture(GL_TEXTURE_2D, g_buffer.g_color);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_FLOAT,
+                 NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D,
+                           g_buffer.g_color, 0);
+  }
+
+  {
+    glBindTexture(GL_TEXTURE_2D, g_buffer.g_depth);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, width, height, 0,
+                 GL_DEPTH_COMPONENT, GL_FLOAT, 0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE,
+                    GL_COMPARE_REF_TO_TEXTURE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+
+    glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, g_buffer.g_depth,
+                         0);
+  }
+
+  GLuint attachments[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1,
+                          GL_COLOR_ATTACHMENT2};
+  glDrawBuffers(3, attachments);
+
+  glEnable(GL_CULL_FACE);
+  glClear(GL_DEPTH_BUFFER_BIT);
+
+  glEnable(GL_DEPTH_TEST);
+  glDepthFunc(GL_LEQUAL);
+
+  for (auto& model : store_.models) {
+    glm::mat4 mv_matrix = store_.view_matrix * model.model_mat;
+    glm::mat4 inv_tr_matrix = glm::transpose(glm::inverse(mv_matrix));
+    UpdateUniformMat4fv(program, "mv_matrix", mv_matrix);
+    UpdateUniformMat4fv(program, "proj_matrix", store_.perspective_matrix);
+    UpdateUniformMat4fv(program, "norm_matrix", inv_tr_matrix);
+
+    model.Draw();
+  }
+
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  glDrawBuffer(GL_FRONT);
 }
 
 }  // namespace engine

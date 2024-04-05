@@ -14,7 +14,7 @@ namespace engine {
 
 class RenderingEngine {
  public:
-  enum class ProgramType : uint32_t { DEFAULT = 0, SHADOW_MAP = 1, COUNT = 2 };
+  enum class ProgramType : uint32_t { DEFAULT = 0, SHADOW_MAP = 1, G_BUFFER = 2, COUNT = 3 };
 
   virtual void Init();
 

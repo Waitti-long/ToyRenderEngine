@@ -13,6 +13,8 @@ class RenderingSettings {
   Shadow shadow = Shadow::NONE;
   GI gi = GI::NONE;
   AO ao = AO::NONE;
+
+  bool need_gbuffer = false;
 };
 
 }  // namespace engine
