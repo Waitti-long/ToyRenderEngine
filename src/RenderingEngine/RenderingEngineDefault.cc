@@ -383,8 +383,6 @@ void RenderingEngineDefault::DrawModelsWidthProgramSSAO(GLuint program) {
   glBindTexture(GL_TEXTURE_2D, store_.g_buffer.g_normal);
 
   UpdateUniformArrayVec3fv(program, "samples", store_.ssao.samples);
-  float noise_scale[] = {width / 4.0f, height / 4.0f};
-  UpdateUniform2fv(program, "noise_scale", noise_scale);
 
   glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
                        store_.g_buffer.g_depth, 0);

@@ -1,6 +1,5 @@
 #version 430
 
-uniform vec2 noise_scale;
 uniform vec3 samples[64];
 uniform mat4 proj_matrix;
 uniform vec2 screen_size;
