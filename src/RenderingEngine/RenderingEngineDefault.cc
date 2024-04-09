@@ -42,9 +42,7 @@ void RenderingEngineDefault::Init() {
 
   settings_.ao = RenderingSettings::AO::SSAO;
 
-  if (settings_.ao != RenderingSettings::AO::NONE) {
-    settings_.need_gbuffer = true;
-  }
+  settings_.need_gbuffer = true;
 }
 
 void RenderingEngineDefault::Draw(double dt) {
@@ -110,6 +108,10 @@ void RenderingEngineDefault::DrawModelWithProgramDefault(RenderingModel& model,
 
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, store_.shadow_map.shadow_texture);
+
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, store_.g_buffer.g_position);
+
     UpdateUniform1fv(program, "enable_shadow_map", 1.0f);
   } else {
     UpdateUniform1fv(program, "enable_shadow_map", 0.0f);
