@@ -42,6 +42,8 @@ class RenderingEngine {
 
   void Clear();
 
+  void UpdateUniform1iv(GLuint program, const std::string& name, int value);
+
   void UpdateUniformMat4fv(GLuint program, const std::string& name,
                            const glm::mat4& value);
 

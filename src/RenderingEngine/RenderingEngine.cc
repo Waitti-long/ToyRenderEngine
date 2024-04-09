@@ -73,6 +73,12 @@ void RenderingEngine::Init() {
   }
 }
 
+void RenderingEngine::UpdateUniform1iv(GLuint program, const std::string &name,
+                                       int value) {
+  GLuint loc = glGetUniformLocation(program, name.c_str());
+  glProgramUniform1iv(program, loc, 1, &value);
+}
+
 void RenderingEngine::UpdateUniformMat4fv(GLuint program,
                                           const std::string &name,
                                           const glm::mat4 &value) {

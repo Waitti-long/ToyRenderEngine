@@ -38,6 +38,8 @@ void RenderingEngineDefault::Init() {
   }
 
   settings_.shadow = RenderingSettings::Shadow::SHADOW_MAP;
+  settings_.pcf_kernel = 4;
+
   settings_.ao = RenderingSettings::AO::SSAO;
 
   if (settings_.ao != RenderingSettings::AO::NONE) {
@@ -104,6 +106,8 @@ void RenderingEngineDefault::DrawModelWithProgramDefault(RenderingModel& model,
                            store_.shadow_map.light_view_matrix *
                            model.model_mat;
     UpdateUniformMat4fv(program, "shadow_mvp", shadow_mvp);
+    UpdateUniform1iv(program, "pcf_kernel", settings_.pcf_kernel);
+
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, store_.shadow_map.shadow_texture);
     UpdateUniform1fv(program, "enable_shadow_map", 1.0f);

@@ -18,6 +18,8 @@ class RenderingSettings {
 
   float ssao_samples = 64;
   float ssao_noise_samples = 16;
+
+  int pcf_kernel = 0;
 };
 
 }  // namespace engine
