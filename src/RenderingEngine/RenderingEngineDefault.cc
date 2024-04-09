@@ -117,6 +117,8 @@ void RenderingEngineDefault::DrawModelWithProgramDefault(RenderingModel& model,
 
     int width, height;
     glfwGetFramebufferSize(window_, &width, &height);
+    float screen_size[] = {(float)width, (float)height};
+    UpdateUniform2fv(program, "screen_size", screen_size);
 
     UpdateUniform1fv(program, "enable_ssao", 1.0f);
   } else {
@@ -306,11 +308,11 @@ void RenderingEngineDefault::GenerateSSAOSamplesAndNoise() {
   };
 
   for (GLuint i = 0; i < settings_.ssao_samples; i++) {
-    glm::vec3 sample(random_floats(generator) * 2.0 - 1.0,
-                     random_floats(generator) * 2.0 - 1.0,
-                     random_floats(generator));
-    GLfloat scale = GLfloat(i) / settings_.ssao_samples;
-    scale = lerp(0.1f, 1.0f, scale * scale);
+    std::uniform_real_distribution<GLfloat> random_floats2(0.00, 1);
+    glm::vec3 sample(random_floats2(generator), random_floats2(generator),
+                     random_floats2(generator));
+    GLfloat scale = GLfloat(i + 1) / settings_.ssao_samples;
+    scale = lerp(0.0f, 1.0f, scale * scale);
     sample *= scale;
     ssao_kernel.push_back(sample);
   }
@@ -323,42 +325,45 @@ void RenderingEngineDefault::GenerateSSAOSamplesAndNoise() {
                     random_floats(generator) * 2.0 - 1.0, 0.0f);
     ssao_noise.push_back(noise);
   }
-
-  GLuint noise_texture;
-  glGenTextures(1, &noise_texture);
-  glBindTexture(GL_TEXTURE_2D, noise_texture);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, 4, 4, 0, GL_RGB, GL_FLOAT,
-               &ssao_noise[0]);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-  store_.ssao.noise_texture = noise_texture;
 }
 
 void RenderingEngineDefault::DrawModelsWidthProgramSSAO(GLuint program) {
-  if (store_.ssao.noise_texture == 0) {
+  if (!store_.ssao.initialized) {
     GenerateSSAOSamplesAndNoise();
+    store_.ssao.initialized = true;
   }
 
   if (store_.ssao.fbo == 0) {
     glGenFramebuffers(1, &store_.ssao.fbo);
     glGenTextures(1, &store_.ssao.color_buffer);
+    glGenTextures(1, &store_.ssao.debug_texture);
   }
 
   int width, height;
   glfwGetFramebufferSize(window_, &width, &height);
 
+  float screen_size[] = {(float)width, (float)height};
+  UpdateUniform2fv(program, "screen_size", screen_size);
+
   {
     glBindFramebuffer(GL_FRAMEBUFFER, store_.ssao.fbo);
     glBindTexture(GL_TEXTURE_2D, store_.ssao.color_buffer);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width, height, 0, GL_RGB, GL_FLOAT,
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, width, height, 0, GL_RED, GL_FLOAT,
                  NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
                            store_.ssao.color_buffer, 0);
+  }
+
+  {
+    glBindTexture(GL_TEXTURE_2D, store_.ssao.debug_texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, width, height, 0, GL_RGB,
+                 GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D,
+                           store_.ssao.debug_texture, 0);
   }
 
   glClear(GL_COLOR_BUFFER_BIT);
@@ -370,8 +375,6 @@ void RenderingEngineDefault::DrawModelsWidthProgramSSAO(GLuint program) {
   glBindTexture(GL_TEXTURE_2D, store_.g_buffer.g_position);
   glActiveTexture(GL_TEXTURE1);
   glBindTexture(GL_TEXTURE_2D, store_.g_buffer.g_normal);
-  glActiveTexture(GL_TEXTURE2);
-  glBindTexture(GL_TEXTURE_2D, store_.ssao.noise_texture);
 
   UpdateUniformArrayVec3fv(program, "samples", store_.ssao.samples);
   float noise_scale[] = {width / 4.0f, height / 4.0f};
@@ -380,7 +383,8 @@ void RenderingEngineDefault::DrawModelsWidthProgramSSAO(GLuint program) {
   glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
                        store_.g_buffer.g_depth, 0);
 
-  glDrawBuffer(GL_COLOR_ATTACHMENT0);
+  GLuint buffers[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
+  glDrawBuffers(2, buffers);
 
   glEnable(GL_CULL_FACE);
 

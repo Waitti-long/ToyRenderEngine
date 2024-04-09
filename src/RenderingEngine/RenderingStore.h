@@ -29,9 +29,10 @@ class GBuffer {
 class SSAOData {
  public:
   std::vector<glm::vec3> samples;
-  GLuint noise_texture;
+  bool initialized = false;
   GLuint fbo;
   GLuint color_buffer;
+  GLuint debug_texture;
 };
 
 class RenderingStore {

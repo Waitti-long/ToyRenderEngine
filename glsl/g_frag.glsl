@@ -20,5 +20,5 @@ void main() {
     g_position.xyz = varyingVertPos.xyz;
     g_normal = varyingNormal;
     g_color = varyingColor;
-    g_position.a = LinearizeDepth(gl_FragCoord.a);
+    g_position.a = LinearizeDepth(gl_FragCoord.z);
 }
