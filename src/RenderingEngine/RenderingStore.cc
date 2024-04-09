@@ -4,7 +4,7 @@ namespace engine {
 
 void RenderingStore::OnWindowSizeChanged(int width, int height) {
   aspect = (float)height / (float)width;
-  perspective_matrix = glm::perspective(1.0472f, aspect, 0.1f, 1000.0f);
+  perspective_matrix = glm::perspective(1.0472f, aspect, z_near, z_far);
 }
 
 void RenderingStore::RotateCamera(glm::vec3 value) {

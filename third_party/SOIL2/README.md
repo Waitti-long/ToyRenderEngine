@@ -46,8 +46,8 @@ MIT-0 (see LICENSE file)
     * [QOI](https://github.com/phoboslab/qoi)
 
 
-* Can load an image file directly into a 2D OpenGL texture, optionally performing the following functions:
-    * Can generate a new texture handle, or reuse one specified
+* Can load an image file directly into a 2D OpenGL noise_texture, optionally performing the following functions:
+    * Can generate a new noise_texture handle, or reuse one specified
     * Can automatically rescale the image to the next largest power-of-two size
     * Can automatically create MIPmaps
     * Can scale (not simply clamp) the RGB values into the "safe range" for NTSC displays (16 to 235)
@@ -55,15 +55,15 @@ MIT-0 (see LICENSE file)
     * Can flip the image vertically
     * Can compress and upload any image as DXT1 or DXT5 (if EXT_texture_compression_s3tc is available), using an     * internal (very fast!) compressor
     * Can convert the RGB to YCoCg color space (useful with DXT5 compression: see [this link](http://www.nvidia.com/object/real-time-ycocg-dxt-compression.html) from NVIDIA)
-    * Will automatically downsize a texture if it is larger than GL_MAX_TEXTURE_SIZE
+    * Will automatically downsize a noise_texture if it is larger than GL_MAX_TEXTURE_SIZE
     * Can directly upload DDS files (DXT1/3/5/uncompressed/cubemap, with or without MIPmaps). Note: directly uploading the compressed DDS image will disable the other options (no flipping, no pre-multiplying alpha, no rescaling, no creation of MIPmaps, no auto-downsizing)
     * Can load rectangular textures for GUI elements or splash screens (requires GL_ARB/EXT/NV_texture_rectangle)
-Can decompress images from RAM (e.g. via [PhysicsFS](http://icculus.org/physfs/) or similar) into an OpenGL texture (same features as regular 2D textures, above)
+Can decompress images from RAM (e.g. via [PhysicsFS](http://icculus.org/physfs/) or similar) into an OpenGL noise_texture (same features as regular 2D textures, above)
 
 
-* Can load cube maps directly into an OpenGL texture (same features as regular 2D textures, above)
-* Can take six image files directly into an OpenGL cube map texture
-Can take a single image file where width = 6*height (or vice versa), split it into an OpenGL cube map texture
+* Can load cube maps directly into an OpenGL noise_texture (same features as regular 2D textures, above)
+* Can take six image files directly into an OpenGL cube map noise_texture
+Can take a single image file where width = 6*height (or vice versa), split it into an OpenGL cube map noise_texture
 * No external dependencies
 * Tiny
 * Cross platform (Windows, Linux, Mac OS X, FreeBSD, Solaris, Haiku, iOS, Android, and probably any platform with OpenGL support)
@@ -90,9 +90,9 @@ Can take a single image file where width = 6*height (or vice versa), split it in
 
 * Save images to PNG ( thanks to additions to stb_image ) and JPG.
 
-* `SOIL_create_OGL_texture` expects width and height parameters as pointers, since the real size of the texture loaded could change. This occurs when GL_ARB_texture_non_power_of_two extension is not present and the user tries to load a non-power of two texture.
+* `SOIL_create_OGL_texture` expects width and height parameters as pointers, since the real size of the noise_texture loaded could change. This occurs when GL_ARB_texture_non_power_of_two extension is not present and the user tries to load a non-power of two noise_texture.
 
-* Added support for PVRTC and ETC1 ( PKM format ) direct loading and decoding as fallback method if the GPU doesn't support the texture compression method. With the following new functions exposed:
+* Added support for PVRTC and ETC1 ( PKM format ) direct loading and decoding as fallback method if the GPU doesn't support the noise_texture compression method. With the following new functions exposed:
     * `SOIL_direct_load_PVR`
     * `SOIL_direct_load_PVR_from_memory`
     * `SOIL_direct_load_ETC1`
@@ -139,7 +139,7 @@ Simply include SOIL2.h in your C or C++ file, compile the .c files or link to th
 **Below are some simple usage examples:**
 
 ```c
-/* load an image file directly as a new OpenGL texture */
+/* load an image file directly as a new OpenGL noise_texture */
 GLuint tex_2d = SOIL_load_OGL_texture
 	(
 		"img.png",
@@ -154,7 +154,7 @@ if( 0 == tex_2d )
 	printf( "SOIL loading error: '%s'\n", SOIL_last_result() );
 }
 
-/* load another image, but into the same texture ID, overwriting the last one */
+/* load another image, but into the same noise_texture ID, overwriting the last one */
 tex_2d = SOIL_load_OGL_texture
 	(
 		"some_other_img.dds",

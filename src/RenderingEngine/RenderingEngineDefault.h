@@ -17,6 +17,11 @@ class RenderingEngineDefault : public RenderingEngine {
   void DrawModelsWithProgramShadowMap(GLuint program);
 
   void DrawModelsWithProgramGBuffer(GLuint program);
+
+  void DrawModelsWidthProgramSSAO(GLuint program);
+
+ private:
+  void GenerateSSAOSamplesAndNoise();
 };
 
 }  // namespace engine

@@ -1,5 +1,7 @@
 #include "RenderingEngineDefault.h"
 
+#include <random>
+
 namespace engine {
 
 void window_size_changed_callback(GLFWwindow* window, int width, int height) {
@@ -46,6 +48,10 @@ void RenderingEngineDefault::Init() {
 void RenderingEngineDefault::Draw(double dt) {
   if (settings_.need_gbuffer) {
     DrawModelsWithProgramGBuffer(UseProgram(ProgramType::G_BUFFER));
+  }
+
+  if (settings_.ao == RenderingSettings::AO::SSAO) {
+    DrawModelsWidthProgramSSAO(UseProgram(ProgramType::SSAO));
   }
 
   if (settings_.shadow == RenderingSettings::Shadow::SHADOW_MAP) {
@@ -103,6 +109,18 @@ void RenderingEngineDefault::DrawModelWithProgramDefault(RenderingModel& model,
     UpdateUniform1fv(program, "enable_shadow_map", 1.0f);
   } else {
     UpdateUniform1fv(program, "enable_shadow_map", 0.0f);
+  }
+
+  if (settings_.ao == RenderingSettings::AO::SSAO) {
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, store_.ssao.color_buffer);
+
+    int width, height;
+    glfwGetFramebufferSize(window_, &width, &height);
+
+    UpdateUniform1fv(program, "enable_ssao", 1.0f);
+  } else {
+    UpdateUniform1fv(program, "enable_ssao", 0.0f);
   }
 
   if (!store_.spot_lights.empty()) {
@@ -207,10 +225,12 @@ void RenderingEngineDefault::DrawModelsWithProgramGBuffer(GLuint program) {
 
   {
     glBindTexture(GL_TEXTURE_2D, g_buffer.g_position);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_FLOAT,
-                 NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA,
+                 GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
                            g_buffer.g_position, 0);
   }
@@ -259,6 +279,9 @@ void RenderingEngineDefault::DrawModelsWithProgramGBuffer(GLuint program) {
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LEQUAL);
 
+  UpdateUniform1fv(program, "z_near", store_.z_near);
+  UpdateUniform1fv(program, "z_far", store_.z_far);
+
   for (auto& model : store_.models) {
     glm::mat4 mv_matrix = store_.view_matrix * model.model_mat;
     glm::mat4 inv_tr_matrix = glm::transpose(glm::inverse(mv_matrix));
@@ -271,6 +294,112 @@ void RenderingEngineDefault::DrawModelsWithProgramGBuffer(GLuint program) {
 
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glDrawBuffer(GL_FRONT);
+}
+
+void RenderingEngineDefault::GenerateSSAOSamplesAndNoise() {
+  std::uniform_real_distribution<GLfloat> random_floats(0.0, 1.0);
+  std::default_random_engine generator;
+  std::vector<glm::vec3> ssao_kernel;
+
+  auto lerp = [](GLfloat a, GLfloat b, GLfloat f) -> GLfloat {
+    return a + f * (b - a);
+  };
+
+  for (GLuint i = 0; i < settings_.ssao_samples; i++) {
+    glm::vec3 sample(random_floats(generator) * 2.0 - 1.0,
+                     random_floats(generator) * 2.0 - 1.0,
+                     random_floats(generator));
+    GLfloat scale = GLfloat(i) / settings_.ssao_samples;
+    scale = lerp(0.1f, 1.0f, scale * scale);
+    sample *= scale;
+    ssao_kernel.push_back(sample);
+  }
+
+  store_.ssao.samples = ssao_kernel;
+
+  std::vector<glm::vec3> ssao_noise;
+  for (GLuint i = 0; i < settings_.ssao_noise_samples; i++) {
+    glm::vec3 noise(random_floats(generator) * 2.0 - 1.0,
+                    random_floats(generator) * 2.0 - 1.0, 0.0f);
+    ssao_noise.push_back(noise);
+  }
+
+  GLuint noise_texture;
+  glGenTextures(1, &noise_texture);
+  glBindTexture(GL_TEXTURE_2D, noise_texture);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, 4, 4, 0, GL_RGB, GL_FLOAT,
+               &ssao_noise[0]);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+  store_.ssao.noise_texture = noise_texture;
+}
+
+void RenderingEngineDefault::DrawModelsWidthProgramSSAO(GLuint program) {
+  if (store_.ssao.noise_texture == 0) {
+    GenerateSSAOSamplesAndNoise();
+  }
+
+  if (store_.ssao.fbo == 0) {
+    glGenFramebuffers(1, &store_.ssao.fbo);
+    glGenTextures(1, &store_.ssao.color_buffer);
+  }
+
+  int width, height;
+  glfwGetFramebufferSize(window_, &width, &height);
+
+  {
+    glBindFramebuffer(GL_FRAMEBUFFER, store_.ssao.fbo);
+    glBindTexture(GL_TEXTURE_2D, store_.ssao.color_buffer);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width, height, 0, GL_RGB, GL_FLOAT,
+                 NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+                           store_.ssao.color_buffer, 0);
+  }
+
+  glClear(GL_COLOR_BUFFER_BIT);
+  glClear(GL_DEPTH_BUFFER_BIT);
+
+  assert(settings_.need_gbuffer);
+
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, store_.g_buffer.g_position);
+  glActiveTexture(GL_TEXTURE1);
+  glBindTexture(GL_TEXTURE_2D, store_.g_buffer.g_normal);
+  glActiveTexture(GL_TEXTURE2);
+  glBindTexture(GL_TEXTURE_2D, store_.ssao.noise_texture);
+
+  UpdateUniformArrayVec3fv(program, "samples", store_.ssao.samples);
+  float noise_scale[] = {width / 4.0f, height / 4.0f};
+  UpdateUniform2fv(program, "noise_scale", noise_scale);
+
+  glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+                       store_.g_buffer.g_depth, 0);
+
+  glDrawBuffer(GL_COLOR_ATTACHMENT0);
+
+  glEnable(GL_CULL_FACE);
+
+  glEnable(GL_DEPTH_TEST);
+  glDepthFunc(GL_LEQUAL);
+
+  for (auto& model : store_.models) {
+    glm::mat4 mv_matrix = store_.view_matrix * model.model_mat;
+    glm::mat4 inv_tr_matrix = glm::transpose(glm::inverse(mv_matrix));
+    UpdateUniformMat4fv(program, "mv_matrix", mv_matrix);
+    UpdateUniformMat4fv(program, "proj_matrix", store_.perspective_matrix);
+    UpdateUniformMat4fv(program, "norm_matrix", inv_tr_matrix);
+
+    model.Draw();
+  }
+
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  glDrawBuffer(GL_FRONT);
+  glUseProgram(0);
 }
 
 }  // namespace engine

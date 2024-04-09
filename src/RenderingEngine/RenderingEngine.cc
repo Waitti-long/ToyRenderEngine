@@ -92,42 +92,55 @@ void RenderingEngine::UpdateUniform3fv(GLuint program, const std::string &name,
   glProgramUniform3fv(program, loc, 1, value);
 }
 
+void RenderingEngine::UpdateUniform2fv(GLuint program, const std::string &name,
+                                       float *value) {
+  GLuint loc = glGetUniformLocation(program, name.c_str());
+  glProgramUniform2fv(program, loc, 1, value);
+}
+
 void RenderingEngine::UpdateUniform1fv(GLuint program, const std::string &name,
                                        float value) {
   GLuint loc = glGetUniformLocation(program, name.c_str());
   glProgramUniform1fv(program, loc, 1, &value);
 }
 
+void RenderingEngine::UpdateUniformArrayVec3fv(
+    GLuint program, const std::string &name,
+    const std::vector<glm::vec3> &value) {
+  GLuint loc = glGetUniformLocation(program, name.c_str());
+  glProgramUniform3fv(program, loc, value.size(), (float *)&value[0]);
+}
+
 GLuint RenderingEngine::UseProgram(RenderingEngine::ProgramType type) {
+  auto create_link_program = [](GLuint &program, const std::string &vertex,
+                                const std::string &frag) {
+    program = glCreateProgram();
+    AttachShader(program, Files::ReadShaderFile(vertex.c_str()),
+                 GL_VERTEX_SHADER);
+    AttachShader(program, Files::ReadShaderFile(frag.c_str()),
+                 GL_FRAGMENT_SHADER);
+    glLinkProgram(program);
+  };
+
   int index = (int)type;
   auto &program = programs_[index];
   if (program == 0) {
     switch (type) {
       case ProgramType::DEFAULT:
-        program = glCreateProgram();
-        AttachShader(program,
-                     Files::ReadShaderFile("../glsl/universe/vertex.glsl"),
-                     GL_VERTEX_SHADER);
-        AttachShader(program,
-                     Files::ReadShaderFile("../glsl/universe/fragment.glsl"),
-                     GL_FRAGMENT_SHADER);
-        glLinkProgram(program);
+        create_link_program(program, "../glsl/universe/vertex.glsl",
+                            "../glsl/universe/fragment.glsl");
         break;
       case ProgramType::SHADOW_MAP:
-        program = glCreateProgram();
-        AttachShader(program, Files::ReadShaderFile("../glsl/sm_vert.glsl"),
-                     GL_VERTEX_SHADER);
-        AttachShader(program, Files::ReadShaderFile("../glsl/sm_frag.glsl"),
-                     GL_FRAGMENT_SHADER);
-        glLinkProgram(program);
+        create_link_program(program, "../glsl/sm_vert.glsl",
+                            "../glsl/sm_frag.glsl");
         break;
       case ProgramType::G_BUFFER:
-        program = glCreateProgram();
-        AttachShader(program, Files::ReadShaderFile("../glsl/g_vert.glsl"),
-                     GL_VERTEX_SHADER);
-        AttachShader(program, Files::ReadShaderFile("../glsl/g_frag.glsl"),
-                     GL_FRAGMENT_SHADER);
-        glLinkProgram(program);
+        create_link_program(program, "../glsl/g_vert.glsl",
+                            "../glsl/g_frag.glsl");
+        break;
+      case ProgramType::SSAO:
+        create_link_program(program, "../glsl/ssao_vert.glsl",
+                            "../glsl/ssao_frag.glsl");
         break;
       default:
         std::cout << "unsupported program type: " << index << std::endl;

@@ -15,6 +15,9 @@ class RenderingSettings {
   AO ao = AO::NONE;
 
   bool need_gbuffer = false;
+
+  float ssao_samples = 64;
+  float ssao_noise_samples = 16;
 };
 
 }  // namespace engine

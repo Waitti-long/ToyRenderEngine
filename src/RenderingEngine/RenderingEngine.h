@@ -14,7 +14,13 @@ namespace engine {
 
 class RenderingEngine {
  public:
-  enum class ProgramType : uint32_t { DEFAULT = 0, SHADOW_MAP = 1, G_BUFFER = 2, COUNT = 3 };
+  enum class ProgramType : uint32_t {
+    DEFAULT = 0,
+    SHADOW_MAP = 1,
+    G_BUFFER = 2,
+    SSAO = 3,
+    COUNT = 4
+  };
 
   virtual void Init();
 
@@ -45,7 +51,12 @@ class RenderingEngine {
   void UpdateUniform3fv(GLuint program, const std::string& name,
                         float value[3]);
 
+  void UpdateUniform2fv(GLuint program, const std::string& name, float* value);
+
   void UpdateUniform1fv(GLuint program, const std::string& name, float value);
+
+  void UpdateUniformArrayVec3fv(GLuint program, const std::string& name,
+                                const std::vector<glm::vec3>&);
 
   GLuint UseProgram(ProgramType type);
 
