@@ -20,6 +20,8 @@ class RenderingSettings {
   float ssao_noise_samples = 16;
 
   int pcf_kernel = 0;
+
+  bool test_compute_shader = false;
 };
 
 }  // namespace engine

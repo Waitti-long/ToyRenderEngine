@@ -46,6 +46,10 @@ void RenderingEngineDefault::Init() {
 }
 
 void RenderingEngineDefault::Draw(double dt) {
+  if (settings_.test_compute_shader) {
+    TestComputeShader(UseProgram(ProgramType::COMPUTE_SHADER));
+  }
+
   if (settings_.need_gbuffer) {
     DrawModelsWithProgramGBuffer(UseProgram(ProgramType::G_BUFFER));
   }
@@ -407,6 +411,58 @@ void RenderingEngineDefault::DrawModelsWidthProgramSSAO(GLuint program) {
 
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glDrawBuffer(GL_FRONT);
+  glUseProgram(0);
+}
+
+void RenderingEngineDefault::TestComputeShader(GLuint program) {
+  static GLuint in_tex = 0, out_tex = 0;
+  static bool init = false;
+  if (!init) {
+    init = true;
+    glGenTextures(1, &in_tex);
+    glGenTextures(1, &out_tex);
+
+    glBindTexture(GL_TEXTURE_2D, in_tex);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, 16, 16);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+    glBindTexture(GL_TEXTURE_2D, out_tex);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, 16, 16);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  }
+
+  glBindTexture(GL_TEXTURE_2D, in_tex);
+  glBindImageTexture(0, in_tex, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
+
+  glBindTexture(GL_TEXTURE_2D, out_tex);
+  glBindImageTexture(1, out_tex, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+
+  float data[16 * 16 * 4] = {};
+  memset(data, 0, sizeof data);
+
+  glBindTexture(GL_TEXTURE_2D, in_tex);
+  glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 16, 16, GL_RGBA, GL_FLOAT, data);
+
+  float v[4] = {1, 2, 3, 4};
+  GLuint loc = glGetUniformLocation(program, "v");
+  glProgramUniform1fv(program, loc, 4, v);
+
+  glBindImageTexture(0, in_tex, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
+  glBindImageTexture(0, out_tex, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+  glDispatchCompute(1, 1, 1);
+  glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+  glFinish();
+
+  glBindTexture(GL_TEXTURE_2D, out_tex);
+  glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, data);
+
+  for (int i = 0; i < 16; i++) {
+    std::cout << data[i] << ", ";
+  }
+  std::cout << std::endl;
+
   glUseProgram(0);
 }
 

@@ -152,6 +152,12 @@ GLuint RenderingEngine::UseProgram(RenderingEngine::ProgramType type) {
         create_link_program(program, "../glsl/ssao_vert.glsl",
                             "../glsl/ssao_frag.glsl");
         break;
+      case ProgramType::COMPUTE_SHADER:
+        program = glCreateProgram();
+        AttachShader(program, Files::ReadShaderFile("../glsl/comp.glsl"),
+                     GL_COMPUTE_SHADER);
+        glLinkProgram(program);
+        break ;
       default:
         std::cout << "unsupported program type: " << index << std::endl;
         exit(EXIT_FAILURE);

@@ -20,6 +20,8 @@ class RenderingEngineDefault : public RenderingEngine {
 
   void DrawModelsWidthProgramSSAO(GLuint program);
 
+  void TestComputeShader(GLuint program);
+
  private:
   void GenerateSSAOSamplesAndNoise();
 };

@@ -19,7 +19,8 @@ class RenderingEngine {
     SHADOW_MAP = 1,
     G_BUFFER = 2,
     SSAO = 3,
-    COUNT = 4
+    COMPUTE_SHADER = 4,
+    COUNT = 5
   };
 
   virtual void Init();
