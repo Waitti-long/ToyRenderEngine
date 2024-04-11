@@ -20,12 +20,12 @@
 
 ## 加载obj文件 & Blinn-Phong
 
-![img.png](./images/example.png)
+<img src="./images/example.png" width="300px" height="300px">
 
 ## ShadowMap
 
-![img.png](./images/example_with_sm.png)
+<img src="./images/example_with_sm.png" width="300px" height="300px">
 
 ## SSAO
 
-![img.png](./images/example_with_ssao.png)
+<img src="./images/example_with_ssao.png" width="300px" height="300px">
