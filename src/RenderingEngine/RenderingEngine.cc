@@ -5,7 +5,11 @@ namespace engine {
 void APIENTRY glDebugOutput(GLenum source, GLenum type, GLuint id,
                             GLenum severity, GLsizei length,
                             const GLchar *message, const void *userParam) {
-  std::cout << "Debug : " << message << std::endl;
+  std::string mes = message;
+  if (mes.find("samples it with a non-shadow sampler") != mes.npos) {
+    return;
+  }
+  std::cout << "Debug : " << mes << std::endl;
 }
 
 void RenderingEngine::WindowChanged(GLFWwindow *window, int new_width,
