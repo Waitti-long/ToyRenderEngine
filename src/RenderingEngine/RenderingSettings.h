@@ -6,7 +6,7 @@ class RenderingSettings {
  public:
   enum class Shadow { NONE, SHADOW_MAP, VSM };
 
-  enum class GI { NONE, RSM, LPV, VGI, SDFDDGI };
+  enum class GI { NONE, RSM, LPV, VGI, SDFDDGI, SSR };
 
   enum class AO { NONE, SSAO, SSDO };
 

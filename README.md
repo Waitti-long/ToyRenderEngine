@@ -14,6 +14,9 @@
 
 [x] PCF (Percentage-Closer Filtering)
 
+[x] SSR (Screen Space Reflection)
+    [x] simplest ssr
+
 ---
 
 # 示例
@@ -33,3 +36,7 @@
 ## PCF
 
 <img src="./images/example_with_pcf.png" width="300px" height="300px">
+
+## SSR
+
+<img src="./images/example_with_ssr.png" width="300px" height="300px">

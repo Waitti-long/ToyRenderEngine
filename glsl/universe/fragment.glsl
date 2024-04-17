@@ -14,6 +14,7 @@ in vec2 tc;
 in vec3 varyingNormal;
 in vec4 varyingVertPos;
 in vec3 varyingColor;
+in float varyingMetallic;
 
 out vec4 color;
 
@@ -31,6 +32,11 @@ uniform vec2 screen_size;
 
 // g buffer
 layout (binding = 3) uniform sampler2D g_position;
+
+// ssr
+uniform float enable_ssr;
+layout (binding = 4) uniform sampler2D g_normal;
+layout (binding = 5) uniform sampler2D g_color;
 
 float SampleSSAO(vec2 uv) {
     float count = 0.0;
@@ -65,19 +71,48 @@ float PCF() {
     return total / count;
 }
 
+bool RayMarch(vec3 origin, vec3 direction, out vec3 dist) {
+    float delta = 0.01;
+    int st = 0;
+    while (st++ < 1000) {
+        origin += direction * delta;
+        vec4 offset = proj_matrix * vec4(origin, 1.0);
+        offset.xyz /= offset.w;
+        offset.xyz = offset.xyz * 0.5 + 0.5;
+        vec4 pos = texture(g_position, offset.xy);
+        if (origin.z < -pos.w) {
+            dist = texture(g_color, offset.xy).rgb;
+            color.r = st / 2;
+            return true;
+        }
+    }
+    return false;
+}
+
+vec3 SSR(vec3 L, vec3 N, vec3 V) {
+    vec3 R = reflect(-V, N);
+    vec3 dist = vec3(0, 0, 0);
+    if (RayMarch(varyingVertPos.xyz, R, dist)) {
+        return dist;
+    }
+    return vec3(0.0, 0.0, 0.0);
+}
+
 void main() {
     vec3 L = normalize(spot_light.position - varyingVertPos.xyz);
     vec3 N = normalize((norm_matrix * vec4(varyingNormal, 1.0)).xyz);
     vec3 V = normalize(-varyingVertPos.xyz);
     vec3 R = reflect(-L, N);
 
-    float k = 0.4;
+    vec3 k = vec3(0.4, 0.4, 0.4);
 
     if (enable_ssao == 1.0) {
         vec4 proj_pos = proj_matrix * varyingVertPos;
         vec2 vert_pos = gl_FragCoord.xy / screen_size.xy;
         float ratio = SampleSSAO(vert_pos);
         k = k * ratio;
+    } else if (enable_ssr == 1.0 && varyingMetallic == 1.0) {
+        k = k * SSR(L, N, V);
     }
 
     float ref = max(dot(N, L), 0.0) + pow(max(dot(R, V), 0.0f), 8);

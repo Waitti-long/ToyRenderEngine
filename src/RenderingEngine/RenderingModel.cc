@@ -29,6 +29,9 @@ void Mesh::Setup() {
   glEnableVertexAttribArray(3);
   glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
                         (void*)offsetof(Vertex, color));
+  glEnableVertexAttribArray(4);
+  glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                        (void*)offsetof(Vertex, metallic));
 
   glBindVertexArray(0);
 }
@@ -104,6 +107,7 @@ void RenderingModel::LoadModel() {
           vertex.color.x = material.diffuse[0];
           vertex.color.y = material.diffuse[1];
           vertex.color.z = material.diffuse[2];
+          vertex.metallic = material.metallic;
         }
 
         vertices.push_back(vertex);

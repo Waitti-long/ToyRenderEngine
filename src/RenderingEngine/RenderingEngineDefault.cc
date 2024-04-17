@@ -38,11 +38,12 @@ void RenderingEngineDefault::Init() {
   }
 
   settings_.shadow = RenderingSettings::Shadow::SHADOW_MAP;
-  settings_.pcf_kernel = 4;
-
-  settings_.ao = RenderingSettings::AO::SSAO;
+  //  settings_.pcf_kernel = 4;
+  //
+  //  settings_.ao = RenderingSettings::AO::SSAO;
 
   settings_.need_gbuffer = true;
+  settings_.gi = RenderingSettings::GI::SSR;
 }
 
 void RenderingEngineDefault::Draw(double dt) {
@@ -121,18 +122,31 @@ void RenderingEngineDefault::DrawModelWithProgramDefault(RenderingModel& model,
     UpdateUniform1fv(program, "enable_shadow_map", 0.0f);
   }
 
+  int width, height;
+  glfwGetFramebufferSize(window_, &width, &height);
+  float screen_size[] = {(float)width, (float)height};
+  UpdateUniform2fv(program, "screen_size", screen_size);
+
   if (settings_.ao == RenderingSettings::AO::SSAO) {
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, store_.ssao.color_buffer);
 
-    int width, height;
-    glfwGetFramebufferSize(window_, &width, &height);
-    float screen_size[] = {(float)width, (float)height};
-    UpdateUniform2fv(program, "screen_size", screen_size);
-
     UpdateUniform1fv(program, "enable_ssao", 1.0f);
   } else {
     UpdateUniform1fv(program, "enable_ssao", 0.0f);
+  }
+
+  if (settings_.gi == RenderingSettings::GI::SSR) {
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, store_.g_buffer.g_position);
+    glActiveTexture(GL_TEXTURE4);
+    glBindTexture(GL_TEXTURE_2D, store_.g_buffer.g_normal);
+    glActiveTexture(GL_TEXTURE5);
+    glBindTexture(GL_TEXTURE_2D, store_.g_buffer.g_color);
+
+    UpdateUniform1fv(program, "enable_ssr", 1.0f);
+  } else {
+    UpdateUniform1fv(program, "enable_ssr", 0.0f);
   }
 
   if (!store_.spot_lights.empty()) {

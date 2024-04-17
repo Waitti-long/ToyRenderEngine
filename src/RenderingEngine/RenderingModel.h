@@ -18,6 +18,7 @@ class Vertex {
   glm::vec3 normal;
   glm::vec2 texture_coord;
   glm::vec3 color;
+  float metallic = 0; // 金属度
 };
 
 class Texture {
