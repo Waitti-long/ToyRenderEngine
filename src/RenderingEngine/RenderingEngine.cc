@@ -6,7 +6,7 @@ void APIENTRY glDebugOutput(GLenum source, GLenum type, GLuint id,
                             GLenum severity, GLsizei length,
                             const GLchar *message, const void *userParam) {
   std::string mes = message;
-  if (mes.find("samples it with a non-shadow sampler") != mes.npos) {
+  if (mes.find("warning") != mes.npos) {
     return;
   }
   std::cout << "Debug : " << mes << std::endl;
